@@ -17,6 +17,7 @@ import com.freelapp.libs.locationfetcher.LocationSource
 import com.freelapp.maps.components.MapFragmentOwner
 import com.freelapp.maps.domain.MapInteractor
 import com.freelapp.maps.domain.MapManager
+import com.freelapp.maps.impl.R
 import com.freelapp.maps.impl.builder.*
 import com.freelapp.maps.impl.util.*
 import com.freelapp.maps.impl.util.getName
@@ -121,6 +122,7 @@ class MapManagerImpl(
 
     private fun setWorldMode() {
         mapInteractor.mode.value = MapInteractor.Mode.WORLD
+        mapInteractor.showSnackBar(worldwideButton.context.getString(R.string.worldwide))
         hideMap()
     }
 
