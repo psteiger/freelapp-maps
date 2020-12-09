@@ -108,8 +108,8 @@ class MapManagerImpl @Inject constructor(
         mapFragment
             .getMap()
             .makeCircleMap(mapFragment, seekBarManager.seekBarChanges)
-            .makeHeatMap(mapFragment, getGlobalUsersPositionsUseCase)
             .makeLocationAware(mapFragment, locationSource.realLocation.filterNotNull())
+            .makeHeatMap(mapFragment, getGlobalUsersPositionsUseCase)
 
     override fun showMap() {
         mapContainer.isVisible = true

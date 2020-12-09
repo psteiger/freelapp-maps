@@ -76,8 +76,8 @@ class MyGoogleMap(
 
         seekBarChanges
             .onEach {
-                val radius = it.progress * 1000
-                circle.value.radius = radius.toDouble()
+                val radius = it.progress
+                circle.value.radius = (radius * 1000).toDouble()
                 adjustZoomLevel(radius)
             }
             .observeIn(owner)
