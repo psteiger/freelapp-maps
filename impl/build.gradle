@@ -24,7 +24,7 @@ dependencies {
     implementation project(path: ':domain')
     implementation project(path: ':view')
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
-    implementation 'com.github.psteiger.freelapp-common:usecase:9da8069bcc'
+    implementation "com.github.psteiger.freelapp-common:usecase:$freelapp_common_version"
     implementation 'com.github.psteiger.freelapp-snacker:domain:ac491638dd'
 
     implementation "androidx.core:core-ktx:$core_ktx_version"
