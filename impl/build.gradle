@@ -1,7 +1,7 @@
 plugins {
     id 'com.android.library'
     id 'kotlin-android'
-    id 'android-maven'
+    id 'maven-publish'
 }
 
 android {
@@ -17,6 +17,18 @@ android {
     kotlinOptions {
         jvmTarget = '1.8'
         languageVersion = '1.4'
+    }
+}
+
+afterEvaluate {
+    publishing {
+        publications {
+            // Creates a Maven publication called "release".
+            release(MavenPublication) {
+                from components.release
+                artifactId = "$project.name"
+            }
+        }
     }
 }
 

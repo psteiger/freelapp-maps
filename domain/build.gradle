@@ -1,12 +1,24 @@
 plugins {
     id 'java-library'
     id 'kotlin'
-    id 'maven'
+    id 'maven-publish'
 }
 
 java {
     sourceCompatibility = JavaVersion.VERSION_1_8
     targetCompatibility = JavaVersion.VERSION_1_8
+}
+
+afterEvaluate {
+    publishing {
+        publications {
+            // Creates a Maven publication called "release".
+            release(MavenPublication) {
+                from components.java
+                artifactId = "$project.name"
+            }
+        }
+    }
 }
 
 dependencies {
