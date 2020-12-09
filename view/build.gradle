@@ -32,7 +32,7 @@ dependencies {
     // Maps
     implementation "com.google.android.libraries.maps:maps:$maps_version"
     // If you are using Places, add all of the dependencies below
-    implementation (name:'places-maps-sdk-3.1.0-beta', ext:'aar')
+    compileOnly files('libs/places-maps-sdk-3.1.0-beta.aar')
     implementation 'com.google.android.gms:play-services-gcm:17.0.0'
     implementation 'com.google.auto.value:auto-value-annotations:1.6.5'
 
