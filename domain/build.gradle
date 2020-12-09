@@ -1,7 +1,10 @@
 plugins {
     id 'java-library'
     id 'kotlin'
+    id 'maven-publish'
 }
+
+group = 'com.github.psteiger'
 
 java {
     sourceCompatibility = JavaVersion.VERSION_1_8
