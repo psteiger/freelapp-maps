@@ -7,6 +7,7 @@ import com.freelapp.common.domain.usersearchradius.GetUserSearchRadiusUseCase
 import com.freelapp.libs.locationfetcher.LocationSource
 import com.freelapp.maps.components.MapFragmentOwner
 import com.freelapp.maps.domain.MapManager
+import com.freelapp.maps.domain.SeekBarManager
 import com.freelapp.maps.impl.viewmanager.MapManagerImpl
 
 object MapManagerFactory {
@@ -17,12 +18,15 @@ object MapManagerFactory {
         getGlobalUsersPositionsUseCase: GetGlobalUsersPositionsUseCase,
         setUserSearchModeUseCase: SetUserSearchModeUseCase,
         locationSource: LocationSource,
-    ): MapManager = MapManagerImpl(
-        lifecycleOwner,
-        mapFragmentOwner,
-        getUserSearchRadiusUseCase,
-        getGlobalUsersPositionsUseCase,
-        setUserSearchModeUseCase,
-        locationSource
-    )
+        seekBarManager: SeekBarManager,
+    ): MapManager =
+        MapManagerImpl(
+            lifecycleOwner,
+            mapFragmentOwner,
+            getUserSearchRadiusUseCase,
+            getGlobalUsersPositionsUseCase,
+            setUserSearchModeUseCase,
+            locationSource,
+            seekBarManager
+        )
 }
