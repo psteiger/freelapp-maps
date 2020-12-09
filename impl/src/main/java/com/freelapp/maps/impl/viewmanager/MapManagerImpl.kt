@@ -18,7 +18,6 @@ import com.freelapp.maps.components.MapFragmentOwner
 import com.freelapp.maps.domain.MapInteractor
 import com.freelapp.maps.domain.MapManager
 import com.freelapp.maps.impl.builder.*
-import com.freelapp.maps.impl.R
 import com.freelapp.maps.impl.util.*
 import com.freelapp.maps.impl.util.getName
 import com.freelapp.maps.impl.util.toLocation
@@ -51,31 +50,29 @@ class MapManagerImpl(
     private val placesFragment by lazy { mapFragmentOwner.getPlaceAutocompleteFragment() }
 
     override fun onCreate(owner: LifecycleOwner) {
-        lifecycleOwner.lifecycleScope.launchWhenStarted {
-            placesFragment.view?.apply {
-                setBackgroundColor(ContextCompat.getColor(context, android.R.color.white))
+        placesFragment.view?.apply {
+            setBackgroundColor(ContextCompat.getColor(context, android.R.color.white))
+        }
+        worldwideButton.onClick(lifecycleOwner) {
+            it.performHapticFeedback()
+            if (mapInteractor.isSubscribed) {
+                setWorldMode()
+            } else {
+                mapInteractor.subscribe()
             }
-            worldwideButton.onClick(lifecycleOwner) {
-                it.performHapticFeedback()
-                if (mapInteractor.isSubscribed) {
-                    hideMap()
-                    setWorldMode()
-                } else {
-                    mapInteractor.subscribe()
-                }
-            }
-            showMapButton.setOnClickListener {
-                showMap()
-            }
-            closeMapButton.setOnClickListener {
-                hideMap()
-            }
+        }
+        showMapButton.setOnClickListener {
+            showMap()
+        }
+        closeMapButton.setOnClickListener {
+            hideMap()
+        }
+        lifecycleOwner.lifecycleScope.launch {
             mapFragment
                 .getMap { myMap ->
                     centerButton.onClick(lifecycleOwner) {
                         it.performHapticFeedback()
                         if (mapInteractor.isSubscribed) {
-                            hideMap()
                             myMap.map.setCustomLocation()
                         } else {
                             mapInteractor.subscribe()
@@ -129,11 +126,11 @@ class MapManagerImpl(
 
     private suspend fun GoogleMap.setCustomLocation() = supervisorScope {
         mapInteractor.mode.value = MapInteractor.Mode.NEARBY
-        hideMap()
         val location = cameraPosition.target.toLocation()
         launch { location.showName() }
         locationSource.setCustomLocation(location)
         locationSource.setPreferredSource(LocationSource.Source.CUSTOM)
+        hideMap()
     }
 
     override fun mapIsShowing() = mapContainer.visibility == View.VISIBLE
