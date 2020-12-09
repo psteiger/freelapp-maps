@@ -48,4 +48,5 @@ dependencies {
 
     implementation("com.github.psteiger:locationfetcher:$locationfetcher_version") {
         changing = true
-    }}
+    }
+}
