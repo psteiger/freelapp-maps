@@ -67,17 +67,20 @@ class MyGoogleMap(
 
         fun adjustZoomLevel(searchRadius: Int) {
             val cu = newLatLngZoom(map.cameraPosition.target, searchRadius.asZoomLevel())
-            map.moveCamera(cu)
+            map.animateCamera(cu)
         }
 
-        seekBarChanges.combine(cameraCenter) { progress, centerState ->
-            val newRadius = (progress.progress * 1000)
-            circle.value.apply {
-                center = centerState.position
-                radius = newRadius.toDouble()
+        cameraCenter
+            .onEach { circle.value.center = it.position }
+            .observeIn(owner)
+
+        seekBarChanges
+            .onEach {
+                val radius = it.progress * 1000
+                circle.value.radius = radius.toDouble()
+                adjustZoomLevel(radius)
             }
-            adjustZoomLevel(newRadius)
-        }.observeIn(owner)
+            .observeIn(owner)
     }
 
     @ExperimentalCoroutinesApi
