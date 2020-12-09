@@ -2,11 +2,9 @@ package com.freelapp.maps.impl.viewmanager
 
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
-import android.util.Log
 import android.view.View
 import android.view.ViewAnimationUtils
 import androidx.core.content.ContextCompat
-import androidx.core.view.isGone
 import androidx.core.view.isInvisible
 import androidx.core.view.isVisible
 import androidx.lifecycle.DefaultLifecycleObserver
@@ -16,16 +14,21 @@ import com.freelapp.common.domain.getglobaluserspositions.GetGlobalUsersPosition
 import com.freelapp.common.domain.usersearchmode.SetUserSearchModeUseCase
 import com.freelapp.common.domain.usersearchradius.GetUserSearchRadiusUseCase
 import com.freelapp.common.entity.SearchMode
+import com.freelapp.flowlifecycleobserver.observeIn
 import com.freelapp.libs.locationfetcher.LocationSource
 import com.freelapp.maps.components.MapFragmentOwner
 import com.freelapp.maps.domain.MapManager
-import com.freelapp.maps.impl.builder.*
-import com.freelapp.maps.impl.ktx.*
-import com.google.android.gms.common.api.Status
+import com.freelapp.maps.impl.builder.asZoomLevel
+import com.freelapp.maps.impl.builder.getMap
+import com.freelapp.maps.impl.entity.CameraState
+import com.freelapp.maps.impl.ktx.performHapticFeedback
+import com.freelapp.maps.impl.ktx.selectedPlaces
+import com.freelapp.maps.impl.ktx.toPair
 import com.google.android.libraries.maps.CameraUpdateFactory
 import com.google.android.libraries.places.api.model.Place
-import com.google.android.libraries.places.widget.listener.PlaceSelectionListener
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.math.hypot
@@ -49,6 +52,7 @@ class MapManagerImpl @Inject constructor(
     private val mapFragment get() = mapFragmentOwner.getMapFragment()
     private val placesFragment get() = mapFragmentOwner.getPlaceAutocompleteFragment()
 
+    @ExperimentalCoroutinesApi
     override fun onCreate(owner: LifecycleOwner) {
         placesFragment.view?.apply {
             setBackgroundColor(ContextCompat.getColor(context, android.R.color.white))
@@ -65,35 +69,33 @@ class MapManagerImpl @Inject constructor(
             hideMap()
         }
         owner.lifecycleScope.launch {
-            mapFragment
-                .getMap { myMap ->
-                    centerButton.setOnClickListener {
-                        it.performHapticFeedback()
-                        val location = myMap.map.cameraPosition.target.toPair()
-                        setUserSearchModeUseCase(SearchMode.Nearby.Custom(location))
-                        hideMap()
-                    }
-                    myMap.addOnCameraMoveListener { centerButton.isGone = true }
-                    myMap.addOnCameraIdleListener { centerButton.isVisible = true }
-                    placesFragment
-                        .setPlaceFields(listOf(Place.Field.LAT_LNG))
-                        .setOnPlaceSelectedListener(object : PlaceSelectionListener {
-                            override fun onPlaceSelected(place: Place) {
-                                val cameraUpdate = CameraUpdateFactory.newLatLngZoom(
-                                    place.latLng,
-                                    getUserSearchRadiusUseCase().value.asZoomLevel()
-                                )
-                                myMap.map.moveCamera(cameraUpdate)
-                            }
+            val map =
+                mapFragment
+                    .getMap()
+                    .makeCircleMap(owner, getUserSearchRadiusUseCase)
+                    .makeLocationAware(owner, locationSource.realLocation.filterNotNull())
+                    .makeHeatMap(owner, getGlobalUsersPositionsUseCase)
 
-                            override fun onError(error: Status) {
-                                Log.e("MapManagerImpl", "on error: $error")
-                            }
-                        })
+            centerButton.setOnClickListener {
+                it.performHapticFeedback()
+                val location = map.cameraState.value.position.target.toPair()
+                setUserSearchModeUseCase(SearchMode.Nearby.Custom(location))
+                hideMap()
+            }
+
+            map.cameraState
+                .onEach { centerButton.isVisible = it is CameraState.Moving }
+                .observeIn(owner)
+
+            placesFragment.setPlaceFields(listOf(Place.Field.LAT_LNG))
+            placesFragment
+                .selectedPlaces()
+                .onEach {
+                    val zoomLevel = getUserSearchRadiusUseCase().value.asZoomLevel()
+                    val cameraUpdate = CameraUpdateFactory.newLatLngZoom(it.latLng, zoomLevel)
+                    map.moveCamera(cameraUpdate)
                 }
-                .makeCircleMap(owner, getUserSearchRadiusUseCase)
-                .makeLocationAware(owner, locationSource.realLocation.filterNotNull())
-                .makeHeatMap(owner, getGlobalUsersPositionsUseCase)
+                .observeIn(owner)
         }
     }
 

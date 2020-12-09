@@ -5,107 +5,64 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import com.freelapp.common.domain.getglobaluserspositions.GetGlobalUsersPositionsUseCase
 import com.freelapp.common.domain.usersearchradius.GetUserSearchRadiusUseCase
-import com.freelapp.flowlifecycleobserver.observe
 import com.freelapp.flowlifecycleobserver.observeIn
+import com.freelapp.maps.impl.entity.CameraState
+import com.freelapp.maps.impl.ktx.locationListeners
 import com.freelapp.maps.impl.ktx.toLatLng
-import com.freelapp.maps.impl.ktx.toLocation
+import com.google.android.libraries.maps.CameraUpdate
 import com.google.android.libraries.maps.CameraUpdateFactory
 import com.google.android.libraries.maps.CameraUpdateFactory.newLatLngZoom
 import com.google.android.libraries.maps.GoogleMap
-import com.google.android.libraries.maps.LocationSource
 import com.google.android.libraries.maps.SupportMapFragment
 import com.google.android.libraries.maps.model.Circle
 import com.google.android.libraries.maps.model.CircleOptions
-import com.google.android.libraries.maps.model.LatLng
 import com.google.android.libraries.maps.model.TileOverlayOptions
 import com.google.maps.android.heatmaps.HeatmapTileProvider
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.filterNot
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 import kotlin.math.ln
 
-class MyGoogleMap(
-    val map: GoogleMap
-) {
-    private val onCameraIdleListeners = mutableListOf<(GoogleMap) -> Unit>()
-    private val onCameraMoveListeners = mutableListOf<(GoogleMap) -> Unit>()
+class MyGoogleMap(private val map: GoogleMap) {
 
-    fun addOnCameraIdleListener(listener: (GoogleMap) -> Unit) {
-        onCameraIdleListeners.add(listener)
-        map.setOnCameraIdleListener {
-            onCameraIdleListeners.forEach { it(map) }
-        }
-    }
-
-    fun addOnCameraMoveListener(listener: (GoogleMap) -> Unit) {
-        onCameraMoveListeners.add(listener)
-        map.setOnCameraMoveListener {
-            onCameraMoveListeners.forEach { it(map) }
-        }
-    }
+    val cameraState = MutableStateFlow<CameraState>(CameraState.Idle(map.cameraPosition))
 
     fun makeCircleMap(
         owner: LifecycleOwner,
         getUserSearchRadiusUseCase: GetUserSearchRadiusUseCase
     ): MyGoogleMap = apply {
-        var circle: Circle? = null
+        val circleState = MutableStateFlow<Circle>(
+            map.addCircle(
+                CircleOptions()
+                    .center(map.cameraPosition.target)
+                    .radius((getUserSearchRadiusUseCase().value * 1000).toDouble())
+                    .fillColor(0x100000FF)
+                    .strokeWidth(0f)
+            )
+        )
 
         fun adjustZoomLevel(searchRadius: Int) {
             val cu = newLatLngZoom(map.cameraPosition.target, searchRadius.asZoomLevel())
-            map.moveCamera(cu)
+            map.animateCamera(cu)
         }
 
-        fun drawCircle(newCenter: LatLng, searchRadiusInKms: Int) {
-            if (circle == null) {
-                val circleOptions = CircleOptions()
-                    .center(newCenter)
-                    .radius((searchRadiusInKms * 1000).toDouble())
-                    .fillColor(0x100000FF)
-                    .strokeWidth(0f)
-                circle = map.addCircle(circleOptions)
-            } else {
-                circle?.run {
-                    center = newCenter
-                    radius = (searchRadiusInKms * 1000).toDouble()
-                }
+        combine(getUserSearchRadiusUseCase(), cameraState, circleState) { searchRadius, state, circle ->
+            circle.apply {
+                center = state.position.target
+                radius = (searchRadius * 1000).toDouble()
             }
-        }
-
-        fun onCameraMove() {
-            val center = map.cameraPosition.target.toLocation().toLatLng()
-            val radius = getUserSearchRadiusUseCase().value
-            drawCircle(center, radius)
-        }
-
-        addOnCameraMoveListener { onCameraMove() }
-        addOnCameraIdleListener { onCameraMove() }
-
-        getUserSearchRadiusUseCase().observe(owner) { radius ->
-            val center = map.cameraPosition.target.toLocation().toLatLng()
-            drawCircle(center, radius)
-            adjustZoomLevel(radius)
-        }
+            adjustZoomLevel(searchRadius)
+        }.observeIn(owner)
     }
 
+    @ExperimentalCoroutinesApi
     fun makeLocationAware(
         owner: LifecycleOwner,
         realLocation: Flow<Location>,
         onMyLocationButtonClickListener: GoogleMap.OnMyLocationButtonClickListener? = null
     ): MyGoogleMap =
         apply {
-            var googleMapLocationListener: LocationSource.OnLocationChangedListener? = null
-            map.setLocationSource(object : LocationSource {
-                override fun activate(listener: LocationSource.OnLocationChangedListener?) {
-                    googleMapLocationListener = listener
-                }
-
-                override fun deactivate() {
-                    googleMapLocationListener = null
-                }
-            })
             map.setOnMyLocationButtonClickListener(onMyLocationButtonClickListener)
             owner.lifecycleScope.launchWhenStarted {
                 val location = realLocation.first().toLatLng()
@@ -116,13 +73,15 @@ class MyGoogleMap(
                 }
                 map.moveCamera(CameraUpdateFactory.newLatLng(location))
             }
-            realLocation.observe(owner) {
-                googleMapLocationListener?.onLocationChanged(it)
-            }
+            realLocation
+                .combine(map.locationListeners()) { location, listener ->
+                    listener?.onLocationChanged(location)
+                }
+                .observeIn(owner)
         }
 
     fun makeHeatMap(
-        lifecycleOwner: LifecycleOwner,
+        owner: LifecycleOwner,
         getGlobalUsersPositionsUseCase: GetGlobalUsersPositionsUseCase
     ): MyGoogleMap =
         apply {
@@ -140,17 +99,22 @@ class MyGoogleMap(
                         provider!!.setData(it.values.toLatLng())
                     }
                 }
-                .observeIn(lifecycleOwner)
+                .observeIn(owner)
         }
+
+    fun moveCamera(cu: CameraUpdate) {
+        map.moveCamera(cu)
+    }
+
+    init {
+        map.setOnCameraMoveListener { cameraState.value = CameraState.Moving(map.cameraPosition) }
+        map.setOnCameraIdleListener { cameraState.value = CameraState.Idle(map.cameraPosition) }
+    }
 }
 
-internal suspend fun SupportMapFragment.getMap(
-    fn: (MyGoogleMap) -> Unit
-): MyGoogleMap =
-    suspendCancellableCoroutine<MyGoogleMap> {
+internal suspend fun SupportMapFragment.getMap(): MyGoogleMap =
+    suspendCancellableCoroutine {
         getMapAsync { map -> it.resume(MyGoogleMap(map)) }
-    }.apply {
-        fn(this)
     }
 
 internal fun Int.asZoomLevel(): Float =
