@@ -97,14 +97,11 @@ class MyGoogleMap(
         locationSource: LocationSource
     ): MyGoogleMap =
         apply {
-            val mapLocationListener = map.locationListeners(owner.lifecycleScope)
             map.setOnMyLocationButtonClickListener {
                 val location = locationSource.realLocation.replayCache.last()
                     ?: return@setOnMyLocationButtonClickListener true
                 val cu = newLatLng(location.toLatLng())
-                owner.lifecycleScope.launch {
-                    animateCamera(cu)
-                }
+                owner.lifecycleScope.launch { animateCamera(cu) }
                 true
             }
             locationFetcher
@@ -124,7 +121,7 @@ class MyGoogleMap(
                     .filterNotNull()
 
             nonNullRealLocation
-                .combine(mapLocationListener) { loc, listener -> listener?.onLocationChanged(loc) }
+                .combine(map.locationListeners()) { loc, listener -> listener?.onLocationChanged(loc) }
                 .observeIn(owner)
 
             nonNullRealLocation
