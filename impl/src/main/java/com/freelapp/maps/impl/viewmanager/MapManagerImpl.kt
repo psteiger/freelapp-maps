@@ -27,9 +27,10 @@ import com.google.android.libraries.places.api.model.Place
 import com.google.android.libraries.places.widget.listener.PlaceSelectionListener
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 import kotlin.math.hypot
 
-class MapManagerImpl(
+class MapManagerImpl @Inject constructor(
     lifecycleOwner: LifecycleOwner,
     private val mapFragmentOwner: MapFragmentOwner,
     private val getUserSearchRadiusUseCase: GetUserSearchRadiusUseCase,
