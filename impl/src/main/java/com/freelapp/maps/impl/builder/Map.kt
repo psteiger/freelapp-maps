@@ -1,11 +1,13 @@
 package com.freelapp.maps.impl.builder
 
-import android.location.Location
+import android.annotation.SuppressLint
 import android.util.Log
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import com.freelapp.common.domain.getglobaluserspositions.GetGlobalUsersPositionsUseCase
 import com.freelapp.flowlifecycleobserver.observeIn
+import com.freelapp.libs.locationfetcher.LocationFetcher
+import com.freelapp.libs.locationfetcher.LocationSource
 import com.freelapp.maps.domain.entity.SeekBarProgress
 import com.freelapp.maps.impl.entity.CameraCenterState
 import com.freelapp.maps.impl.entity.CameraState
@@ -22,7 +24,6 @@ import com.google.android.libraries.maps.model.TileOverlayOptions
 import com.google.maps.android.heatmaps.HeatmapTileProvider
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 import kotlin.math.ln
@@ -85,29 +86,46 @@ class MyGoogleMap(
             .observeIn(owner)
     }
 
+    @SuppressLint("MissingPermission")
     @ExperimentalCoroutinesApi
     fun makeLocationAware(
         owner: LifecycleOwner,
-        realLocation: Flow<Location>,
+        locationFetcher: LocationFetcher,
+        locationSource: LocationSource,
         onMyLocationButtonClickListener: GoogleMap.OnMyLocationButtonClickListener? = null
     ): MyGoogleMap =
         apply {
             map.setOnMyLocationButtonClickListener(onMyLocationButtonClickListener)
-            owner.lifecycleScope.launch {
-                val location = realLocation.first().toLatLng()
-                try {
-                    map.isMyLocationEnabled = true
-                    map.uiSettings?.isMyLocationButtonEnabled = true
-                } catch (_: SecurityException) {
-                }
-                Log.d("Map", "makeLocationAware moving camera to location=$location")
-                map.moveCamera(CameraUpdateFactory.newLatLng(location))
-            }
-            realLocation
-                .combine(map.locationListeners()) { location, listener ->
-                    listener?.onLocationChanged(location)
+            locationFetcher
+                .permissionStatus
+                .onEach {
+                    val permitted = it == LocationFetcher.PermissionStatus.ALLOWED
+                    map.apply {
+                        isMyLocationEnabled = permitted
+                        uiSettings.isMyLocationButtonEnabled = permitted
+                    }
                 }
                 .observeIn(owner)
+
+            val nonNullRealLocation =
+                locationSource
+                    .realLocation
+                    .filterNotNull()
+
+            nonNullRealLocation
+                .combine(map.locationListeners()) { loc, listener ->
+                    Log.d("Map", "$listener?.onLocationChanged($loc)")
+                    listener?.onLocationChanged(loc)
+                }
+                .observeIn(owner)
+
+            nonNullRealLocation
+                .take(1)
+                .onEach {
+                    Log.d("Map", "makeLocationAware moving camera to location=$it")
+                    map.moveCamera(CameraUpdateFactory.newLatLng(it.toLatLng()))
+                }
+                .launchIn(owner.lifecycleScope)
         }
 
     fun makeHeatMap(

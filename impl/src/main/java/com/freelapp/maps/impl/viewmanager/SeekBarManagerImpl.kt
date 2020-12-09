@@ -75,6 +75,7 @@ class SeekBarManagerImpl @Inject constructor(
         seekBarOwner.getSeekBarHint().text =
             progress.progress.rounded().toLocalizedString()
     }
+
     private fun Int.toLocalizedString() =
         if (Locale.getDefault().country == "US") {
             val miles = context.getString(R.string.miles)
@@ -84,7 +85,5 @@ class SeekBarManagerImpl @Inject constructor(
             "$this $km"
         }
 
-    init {
-        owner.lifecycle.addObserver(this)
-    }
+    init { owner.lifecycle.addObserver(this) }
 }

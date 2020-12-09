@@ -15,7 +15,9 @@ import com.freelapp.common.domain.usersearchmode.SetUserSearchModeUseCase
 import com.freelapp.common.domain.usersearchradius.GetUserSearchRadiusUseCase
 import com.freelapp.common.entity.SearchMode
 import com.freelapp.flowlifecycleobserver.observeIn
+import com.freelapp.libs.locationfetcher.LocationFetcher
 import com.freelapp.libs.locationfetcher.LocationSource
+import com.freelapp.libs.locationfetcher.annotation.ApplicationLocationFetcher
 import com.freelapp.maps.components.MapFragmentOwner
 import com.freelapp.maps.domain.MapManager
 import com.freelapp.maps.domain.SeekBarManager
@@ -29,7 +31,6 @@ import com.freelapp.maps.impl.ktx.toPair
 import com.google.android.libraries.maps.CameraUpdateFactory
 import com.google.android.libraries.places.api.model.Place
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -41,6 +42,7 @@ class MapManagerImpl @Inject constructor(
     private val getUserSearchRadiusUseCase: GetUserSearchRadiusUseCase,
     private val getGlobalUsersPositionsUseCase: GetGlobalUsersPositionsUseCase,
     private val setUserSearchModeUseCase: SetUserSearchModeUseCase,
+    @ApplicationLocationFetcher private val locationFetcher: LocationFetcher,
     private val locationSource: LocationSource,
     private val seekBarManager: SeekBarManager
 ) : DefaultLifecycleObserver,
@@ -107,9 +109,9 @@ class MapManagerImpl @Inject constructor(
     private suspend fun createMap() =
         mapFragment
             .getMap()
-            .makeCircleMap(mapFragment, seekBarManager.seekBarChanges)
-            .makeLocationAware(mapFragment, locationSource.realLocation.filterNotNull())
+            .makeLocationAware(mapFragment, locationFetcher, locationSource)
             .makeHeatMap(mapFragment, getGlobalUsersPositionsUseCase)
+            .makeCircleMap(mapFragment, seekBarManager.seekBarChanges)
 
     override fun showMap() {
         mapContainer.isVisible = true
@@ -150,7 +152,5 @@ class MapManagerImpl @Inject constructor(
 
     enum class AnimationType { HIDE, SHOW }
 
-    init {
-        owner.lifecycle.addObserver(this)
-    }
+    init { owner.lifecycle.addObserver(this) }
 }
