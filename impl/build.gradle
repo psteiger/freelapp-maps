@@ -63,7 +63,9 @@ dependencies {
 
     implementation 'com.github.psteiger:flow-lifecycle-observer:0.1.1'
 
-    implementation "com.github.psteiger:locationfetcher:$locationfetcher_version"
+    implementation("com.github.psteiger:locationfetcher:$locationfetcher_version") {
+        changing = true
+    }
 
     testImplementation 'junit:junit:4.+'
     androidTestImplementation 'androidx.test.ext:junit:1.1.2'

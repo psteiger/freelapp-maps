@@ -46,5 +46,6 @@ dependencies {
     implementation "androidx.lifecycle:lifecycle-runtime-ktx:$lifecycle_version"
     implementation "androidx.lifecycle:lifecycle-common-java8:$lifecycle_version"
 
-    implementation "com.github.psteiger:locationfetcher:$locationfetcher_version"
-}
+    implementation("com.github.psteiger:locationfetcher:$locationfetcher_version") {
+        changing = true
+    }}
