@@ -21,6 +21,7 @@ import com.google.android.libraries.maps.model.TileOverlayOptions
 import com.google.maps.android.heatmaps.HeatmapTileProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.filterNot
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.withContext
@@ -134,6 +135,7 @@ internal fun MyGoogleMap.makeHeatMap(
 ): MyGoogleMap = apply {
     var provider: HeatmapTileProvider? = null
     getGlobalUsersPositionsUseCase()
+        .filterNot { it.isEmpty() }
         .onEach {
             if (provider == null) {
                 provider = HeatmapTileProvider.Builder()
