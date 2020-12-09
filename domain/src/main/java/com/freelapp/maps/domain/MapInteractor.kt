@@ -11,7 +11,7 @@ interface MapInteractor {
     val isSubscribed: Boolean
     val globalUsersPositions: SharedFlow<Map<String, Pair<Double, Double>>>
 
-    fun subscribe(): Boolean
+    suspend fun subscribe(): Boolean
     fun showSnackBar(message: String)
 
     enum class Mode { NEARBY, WORLD }
