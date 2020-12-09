@@ -5,14 +5,13 @@ import com.freelapp.maps.impl.viewmanager.MapManagerImpl
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
-import dagger.hilt.components.SingletonComponent
-import javax.inject.Singleton
+import dagger.hilt.android.scopes.ActivityScoped
 
 @Module
-@InstallIn(SingletonComponent::class)
-abstract class ApplicationComponentBindings {
+@InstallIn(ActivityScoped::class)
+abstract class MapManagerModule {
 
     @Binds
-    @Singleton
+    @ActivityScoped
     abstract fun bindMapManager(impl: MapManagerImpl): MapManager
 }
