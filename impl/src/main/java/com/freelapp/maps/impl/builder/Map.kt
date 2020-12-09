@@ -33,6 +33,7 @@ class MyGoogleMap(
 ) {
 
     private val _cameraState = MutableStateFlow<CameraState>(CameraState.Idle(map.cameraPosition))
+    private val cameraState = _cameraState.asStateFlow()
     private lateinit var circle: MutableStateFlow<Circle>
     private val animations = MutableSharedFlow<CameraUpdate>()
 
@@ -150,6 +151,7 @@ class MyGoogleMap(
         }
 
     private suspend fun animateCamera(cu: CameraUpdate) {
+        cameraState.first { it is CameraState.Idle }
         suspendCancellableCoroutine<Unit> { cont ->
             map.animateCamera(cu, object : GoogleMap.CancelableCallback {
                 override fun onFinish() { cont.resume(Unit) }
