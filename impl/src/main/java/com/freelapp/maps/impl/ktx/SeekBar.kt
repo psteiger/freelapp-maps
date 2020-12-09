@@ -1,33 +1,25 @@
 package com.freelapp.maps.impl.ktx
 
-import android.view.View
 import android.widget.SeekBar
-import com.freelapp.maps.components.SeekBarOwner
-import com.freelapp.maps.impl.entity.SeekBarProgressChange
+import com.freelapp.maps.impl.entity.SeekBarProgress
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.callbackFlow
 
 @ExperimentalCoroutinesApi
-internal fun SeekBarOwner.changes() =
-    callbackFlow<SeekBarProgressChange> {
-        val seekBar = getSeekBar()
-        val hintContainer = getSeekBarHintContainer()
+internal fun SeekBar.changes() =
+    callbackFlow<SeekBarProgress> {
         val listener = object : SeekBar.OnSeekBarChangeListener {
             override fun onStopTrackingTouch(sb: SeekBar) {
-                hintContainer.visibility = View.INVISIBLE
+                runCatching { offer(SeekBarProgress.Stop(sb)) }
             }
-
             override fun onStartTrackingTouch(sb: SeekBar) {
-                hintContainer.visibility = View.VISIBLE
+                runCatching { offer(SeekBarProgress.Start(sb)) }
             }
-
             override fun onProgressChanged(sb: SeekBar, progress: Int, fromUser: Boolean) {
-                runCatching {
-                    offer(SeekBarProgressChange(sb, progress, fromUser))
-                }
+                runCatching { offer(SeekBarProgress.Change(sb, progress, fromUser)) }
             }
         }
-        seekBar.setOnSeekBarChangeListener(listener)
+        setOnSeekBarChangeListener(listener)
         awaitClose()
     }

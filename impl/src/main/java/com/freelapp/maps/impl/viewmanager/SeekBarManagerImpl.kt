@@ -2,6 +2,7 @@ package com.freelapp.maps.impl.viewmanager
 
 import android.content.Context
 import android.view.View
+import androidx.core.view.isVisible
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import com.freelapp.common.domain.usersearchradius.GetUserSearchRadiusUseCase
@@ -10,10 +11,13 @@ import com.freelapp.flowlifecycleobserver.observeIn
 import com.freelapp.maps.components.SeekBarOwner
 import com.freelapp.maps.domain.SeekBarManager
 import com.freelapp.maps.impl.R
+import com.freelapp.maps.impl.entity.SeekBarProgress
 import com.freelapp.maps.impl.ktx.changes
+import com.freelapp.maps.impl.ktx.rounded
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.ObsoleteCoroutinesApi
 import kotlinx.coroutines.flow.conflate
+import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.onEach
 import java.util.*
 import javax.inject.Inject
@@ -48,12 +52,17 @@ class SeekBarManagerImpl @Inject constructor(
     init {
         lifecycleOwner.lifecycle.addObserver(this)
         seekBarOwner
+            .getSeekBar()
             .changes()
             .conflate()
-            .onEach { (seekBar, progress, _) ->
-                val roundedProgress = if (progress < 10) 10 else progress / 10 * 10
-                setUserSearchRadiusUseCase(roundedProgress)
-                seekBarOwner.getSeekBarHint().text = roundedProgress.toLocalizedString(seekBar.context)
+            .onEach {
+                seekBarOwner.getSeekBarHint().isVisible = it is SeekBarProgress.Change
+                if (it is SeekBarProgress.Change) {
+                    seekBarOwner.getSeekBarHint().text =
+                        it.progress.rounded().toLocalizedString(it.sb.context)
+                } else if (it is SeekBarProgress.Stop) {
+                    setUserSearchRadiusUseCase(it.sb.progress.rounded())
+                }
             }
             .observeIn(lifecycleOwner)
     }
