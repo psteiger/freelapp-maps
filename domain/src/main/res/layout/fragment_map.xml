@@ -1,0 +1,157 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:id="@+id/mapContainer"
+    android:visibility="gone">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <androidx.fragment.app.FragmentContainerView
+            android:id="@+id/map"
+            android:name="com.google.android.libraries.maps.SupportMapFragment"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent" />
+
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:layout_alignParentTop="true"
+            android:layout_marginTop="8dp"
+            android:layout_marginStart="8dp"
+            android:layout_marginEnd="64dp"
+            android:layout_marginBottom="8dp"
+            style="@style/PlacesAutocompleteBarTheme">
+            <fragment
+                android:id="@+id/place_autocomplete_fragment"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:name="com.google.android.libraries.places.widget.AutocompleteSupportFragment"
+                tools:ignore="FragmentTagUsage" />
+        </androidx.cardview.widget.CardView>
+    </RelativeLayout>
+
+    <FrameLayout
+        android:layout_width="200dp"
+        android:layout_height="200dp"
+        android:layout_centerInParent="true"
+        android:id="@+id/mapIcon"
+        android:paddingBottom="32dp">
+
+        <ImageView
+            android:contentDescription="@string/marker"
+            app:srcCompat="@drawable/map_marker_big"
+            android:layout_width="wrap_content"
+            android:id="@+id/mapMarker"
+            android:layout_gravity="center"
+            android:layout_height="wrap_content"
+            style="@style/MapMarker.Accent" />
+
+        <FrameLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:id="@+id/chooseLocationFABContainer">
+
+            <com.google.android.material.floatingactionbutton.FloatingActionButton
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/centerButton"
+                android:visibility="gone"
+                app:fabCustomSize="64dp"
+                android:scaleType="center"
+                android:clickable="true"
+                android:focusable="true"
+                android:layout_margin="@dimen/fab_margin"
+                app:srcCompat="@drawable/map_marker"
+                android:contentDescription="@string/center_here" />
+        </FrameLayout>
+    </FrameLayout>
+
+    <androidx.coordinatorlayout.widget.CoordinatorLayout
+        android:id="@+id/mapFABs"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentBottom="true">
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|end"
+            android:layout_alignParentEnd="true"
+            android:layout_alignParentBottom="true"
+            android:layout_margin="@dimen/fab_margin"
+            android:id="@+id/worldwideViewButton"
+            app:srcCompat="@drawable/earth"
+            android:clickable="true"
+            android:focusable="true"
+            android:contentDescription="@string/worldwide"
+            style="@style/FloatingActionButton.Map.Worldwide" />
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/closeMapButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|end"
+            android:layout_marginBottom="90dp"
+            android:layout_marginEnd="0dp"
+            android:layout_marginLeft="0dp"
+            android:layout_marginRight="0dp"
+            android:layout_marginStart="0dp"
+            android:layout_marginTop="0dp"
+            app:srcCompat="@drawable/ic_close_24dp"
+            app:layout_anchor="@id/worldwideViewButton"
+            app:layout_anchorGravity="top"
+            android:clickable="true"
+            android:focusable="true"
+            android:contentDescription="@string/close_map"
+            style="@style/FloatingActionButton.Map.CloseMap" />
+    </androidx.coordinatorlayout.widget.CoordinatorLayout>
+
+    <RelativeLayout
+        android:layout_width="wrap_content"
+        android:layout_height="100dp"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="32dp"
+        android:layout_toStartOf="@id/mapFABs"
+        android:orientation="vertical">
+
+        <SeekBar
+            android:layout_width="200dp"
+            android:layout_height="wrap_content"
+            android:layout_centerHorizontal="true"
+            android:layout_alignParentBottom="true"
+            android:id="@+id/adjustRadiusSeekBar" />
+
+        <androidx.cardview.widget.CardView
+            android:id="@+id/seekBarHintContainer"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentTop="true"
+            android:layout_centerHorizontal="true"
+            android:visibility="invisible"
+            app:cardBackgroundColor="@android:color/white"
+            app:cardCornerRadius="10dp">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/seekBarHint"
+                android:gravity="center"
+                android:textAlignment="center"
+                android:layout_gravity="center"
+                android:layout_marginLeft="8dp"
+                android:layout_marginRight="8dp"
+                android:textSize="24sp"
+                android:textColor="?colorPrimary" />
+        </androidx.cardview.widget.CardView>
+    </RelativeLayout>
+</RelativeLayout>

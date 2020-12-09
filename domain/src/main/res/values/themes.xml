@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<resources>
+    <style name="PlacesAutocompleteBarTheme">
+        <item name="cardCornerRadius">8dp</item>
+    </style>
+
+    <style name="FloatingActionButton" parent="Widget.MaterialComponents.FloatingActionButton">
+        <item name="tint">?buttonDrawableColor</item>
+    </style>
+
+    <style name="FloatingActionButton.Map">
+        <item name="backgroundTint">@android:color/white</item>
+    </style>
+
+    <style name="FloatingActionButton.Map.CloseMap">
+        <item name="tint">@android:color/holo_red_dark</item>
+    </style>
+
+    <style name="FloatingActionButton.Map.Worldwide">
+        <item name="tint">?colorSecondaryVariant</item>
+    </style>
+
+    <style name="MapMarker"/>
+
+    <style name="MapMarker.Accent">
+        <item name="tint">?colorAccent</item>
+    </style>
+</resources>

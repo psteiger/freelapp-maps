@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="worldwide">Worldwide</string>
+    <string name="marker">Marker</string>
+    <string name="close_map">Close map</string>
+    <string name="center_here">Center here</string>
+</resources>
