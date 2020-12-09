@@ -1,6 +1,6 @@
-package com.freelapp.maps.domain
+package com.freelapp.maps.components
 
-import com.freelapp.maps.domain.databinding.FragmentMapBinding
+import com.freelapp.maps.components.databinding.FragmentMapBinding
 import com.google.android.libraries.maps.SupportMapFragment
 import com.google.android.libraries.places.widget.AutocompleteSupportFragment
 import com.google.android.material.floatingactionbutton.FloatingActionButton

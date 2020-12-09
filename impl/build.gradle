@@ -1,14 +1,13 @@
 plugins {
     id 'com.android.library'
     id 'kotlin-android'
-    id 'kotlin-kapt'
-    id 'dagger.hilt.android.plugin'
 }
 
 android {
     compileSdkVersion 30
     defaultConfig {
         minSdkVersion 21
+        targetSdkVersion 30
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
@@ -22,13 +21,10 @@ android {
 
 dependencies {
     implementation project(path: ':domain')
+    implementation project(path: ':components')
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
 
     implementation "androidx.core:core-ktx:$core_ktx_version"
-
-    // Hilt
-    implementation "com.google.dagger:hilt-android:$hilt_version"
-    kapt "com.google.dagger:hilt-compiler:$hilt_version"
 
     // Coroutines
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:$coroutines_version"
@@ -52,7 +48,7 @@ dependencies {
 
     implementation 'com.github.psteiger:flow-lifecycle-observer:0.1.1'
 
-    implementation 'com.github.psteiger:locationfetcher:5.18'
+    implementation "com.github.psteiger:locationfetcher:$locationfetcher_version"
 
     testImplementation 'junit:junit:4.+'
     androidTestImplementation 'androidx.test.ext:junit:1.1.2'

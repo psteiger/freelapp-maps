@@ -2,3 +2,4 @@ rootProject.name = "freelapp-maps"
 include ':impl'
 include ':domain'
 include ':api'
+include ':components'

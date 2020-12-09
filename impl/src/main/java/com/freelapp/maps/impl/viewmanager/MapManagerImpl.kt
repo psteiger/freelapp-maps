@@ -14,7 +14,7 @@ import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import com.freelapp.libs.locationfetcher.LocationSource
-import com.freelapp.maps.domain.MapFragmentOwner
+import com.freelapp.maps.components.MapFragmentOwner
 import com.freelapp.maps.domain.MapInteractor
 import com.freelapp.maps.domain.MapManager
 import com.freelapp.maps.impl.builder.*
@@ -27,21 +27,17 @@ import com.google.android.libraries.maps.CameraUpdateFactory
 import com.google.android.libraries.maps.GoogleMap
 import com.google.android.libraries.places.api.model.Place
 import com.google.android.libraries.places.widget.listener.PlaceSelectionListener
-import dagger.hilt.android.qualifiers.ApplicationContext
-import dagger.hilt.android.scopes.ActivityScoped
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.supervisorScope
-import javax.inject.Inject
 import kotlin.math.hypot
 
-@ActivityScoped
-class MapManagerImpl @Inject constructor(
+class MapManagerImpl(
     mapFragmentOwner: MapFragmentOwner,
     private val lifecycleOwner: LifecycleOwner,
     private val mapInteractor: MapInteractor,
     private val locationSource: LocationSource,
-    @ApplicationContext private val context: Context
+    private val context: Context
 ) : DefaultLifecycleObserver,
     MapManager {
 
