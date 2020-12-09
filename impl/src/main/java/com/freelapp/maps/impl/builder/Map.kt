@@ -1,10 +1,10 @@
 package com.freelapp.maps.impl.builder
 
 import android.location.Location
+import android.util.Log
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import com.freelapp.common.domain.getglobaluserspositions.GetGlobalUsersPositionsUseCase
-import com.freelapp.common.domain.usersearchradius.GetUserSearchRadiusUseCase
 import com.freelapp.flowlifecycleobserver.observeIn
 import com.freelapp.maps.domain.entity.SeekBarProgress
 import com.freelapp.maps.impl.entity.CameraCenterState
@@ -33,6 +33,7 @@ class MyGoogleMap(
 ) {
 
     private val _cameraState = MutableStateFlow<CameraState>(CameraState.Idle(map.cameraPosition))
+    private lateinit var circle: MutableStateFlow<Circle>
 
     @ExperimentalCoroutinesApi
     val cameraCenter: StateFlow<CameraCenterState> =
@@ -55,7 +56,7 @@ class MyGoogleMap(
         owner: LifecycleOwner,
         seekBarChanges: StateFlow<SeekBarProgress>
     ): MyGoogleMap = apply {
-        val circle = MutableStateFlow<Circle>(
+        circle = MutableStateFlow(
             map.addCircle(
                 CircleOptions()
                     .center(map.cameraPosition.target)
@@ -66,6 +67,7 @@ class MyGoogleMap(
         )
 
         fun adjustZoomLevel(searchRadius: Int) {
+            Log.d("Map", "Adjusting zoom level to searchRadius=$searchRadius")
             val cu = newLatLngZoom(map.cameraPosition.target, searchRadius.asZoomLevel())
             map.animateCamera(cu)
         }
@@ -98,6 +100,7 @@ class MyGoogleMap(
                     map.uiSettings?.isMyLocationButtonEnabled = true
                 } catch (_: SecurityException) {
                 }
+                Log.d("Map", "makeLocationAware moving camera to location=$location")
                 map.moveCamera(CameraUpdateFactory.newLatLng(location))
             }
             realLocation
