@@ -1,4 +1,4 @@
-package com.freelapp.maps.impl.util
+package com.freelapp.maps.impl.ktx
 
 import android.location.Location
 import com.google.android.libraries.maps.model.LatLng

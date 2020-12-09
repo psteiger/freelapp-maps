@@ -25,8 +25,6 @@ class SeekBarManagerImpl @Inject constructor(
 ) : SeekBarManager,
     DefaultLifecycleObserver {
 
-    data class SeekBarProgressChange(val sb: SeekBar, val progress: Int)
-
     @ObsoleteCoroutinesApi
     val seekBarActor =
         lifecycleOwner
@@ -74,6 +72,8 @@ class SeekBarManagerImpl @Inject constructor(
             val km = context.getString(R.string.km)
             "$this $km"
         }
+
+    data class SeekBarProgressChange(val sb: SeekBar, val progress: Int)
 
     init {
         lifecycleOwner.lifecycle.addObserver(this)

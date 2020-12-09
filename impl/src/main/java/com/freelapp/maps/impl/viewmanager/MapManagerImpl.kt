@@ -20,7 +20,7 @@ import com.freelapp.libs.locationfetcher.LocationSource
 import com.freelapp.maps.components.MapFragmentOwner
 import com.freelapp.maps.domain.MapManager
 import com.freelapp.maps.impl.builder.*
-import com.freelapp.maps.impl.util.*
+import com.freelapp.maps.impl.ktx.*
 import com.google.android.gms.common.api.Status
 import com.google.android.libraries.maps.CameraUpdateFactory
 import com.google.android.libraries.places.api.model.Place
@@ -31,7 +31,7 @@ import kotlin.math.hypot
 
 class MapManagerImpl(
     lifecycleOwner: LifecycleOwner,
-    mapFragmentOwner: MapFragmentOwner,
+    private val mapFragmentOwner: MapFragmentOwner,
     private val getUserSearchRadiusUseCase: GetUserSearchRadiusUseCase,
     private val getGlobalUsersPositionsUseCase: GetGlobalUsersPositionsUseCase,
     private val setUserSearchModeUseCase: SetUserSearchModeUseCase,
@@ -39,14 +39,14 @@ class MapManagerImpl(
 ) : DefaultLifecycleObserver,
     MapManager {
 
-    private val mapLayout by lazy { mapFragmentOwner.getMapLayout() }
-    private val mapContainer by lazy { mapLayout.mapContainer }
-    private val centerButton by lazy { mapLayout.centerButton }
-    private val worldwideButton by lazy { mapLayout.worldwideViewButton }
-    private val closeMapButton by lazy { mapLayout.closeMapButton }
-    private val showMapButton by lazy { mapFragmentOwner.getShowMapButton() }
-    private val mapFragment by lazy { mapFragmentOwner.getMapFragment() }
-    private val placesFragment by lazy { mapFragmentOwner.getPlaceAutocompleteFragment() }
+    private val mapLayout get() = mapFragmentOwner.getMapLayout()
+    private val mapContainer get() = mapLayout.mapContainer
+    private val centerButton get() = mapLayout.centerButton
+    private val worldwideButton get() = mapLayout.worldwideViewButton
+    private val closeMapButton get() = mapLayout.closeMapButton
+    private val showMapButton get() = mapFragmentOwner.getShowMapButton()
+    private val mapFragment get() = mapFragmentOwner.getMapFragment()
+    private val placesFragment get() = mapFragmentOwner.getPlaceAutocompleteFragment()
 
     override fun onCreate(owner: LifecycleOwner) {
         placesFragment.view?.apply {

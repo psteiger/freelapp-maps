@@ -1,4 +1,4 @@
-package com.freelapp.maps.impl.util
+package com.freelapp.maps.impl.ktx
 
 import android.os.Build
 import android.view.HapticFeedbackConstants
