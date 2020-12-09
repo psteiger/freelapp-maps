@@ -14,7 +14,7 @@ import com.freelapp.maps.impl.entity.CameraState
 import com.freelapp.maps.impl.ktx.locationListeners
 import com.freelapp.maps.impl.ktx.toLatLng
 import com.google.android.libraries.maps.CameraUpdate
-import com.google.android.libraries.maps.CameraUpdateFactory
+import com.google.android.libraries.maps.CameraUpdateFactory.newLatLng
 import com.google.android.libraries.maps.CameraUpdateFactory.zoomTo
 import com.google.android.libraries.maps.GoogleMap
 import com.google.android.libraries.maps.SupportMapFragment
@@ -25,6 +25,7 @@ import com.google.maps.android.heatmaps.HeatmapTileProvider
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 import kotlin.math.ln
@@ -93,11 +94,19 @@ class MyGoogleMap(
     fun makeLocationAware(
         owner: LifecycleOwner,
         locationFetcher: LocationFetcher,
-        locationSource: LocationSource,
-        onMyLocationButtonClickListener: GoogleMap.OnMyLocationButtonClickListener? = null
+        locationSource: LocationSource
     ): MyGoogleMap =
         apply {
-            map.setOnMyLocationButtonClickListener(onMyLocationButtonClickListener)
+            val mapLocationListener = map.locationListeners(owner.lifecycleScope)
+            map.setOnMyLocationButtonClickListener {
+                val location = locationSource.realLocation.replayCache.last()
+                    ?: return@setOnMyLocationButtonClickListener true
+                val cu = newLatLng(location.toLatLng())
+                owner.lifecycleScope.launch {
+                    animateCamera(cu)
+                }
+                true
+            }
             locationFetcher
                 .permissionStatus
                 .onEach {
@@ -115,18 +124,12 @@ class MyGoogleMap(
                     .filterNotNull()
 
             nonNullRealLocation
-                .combine(map.locationListeners()) { loc, listener ->
-                    Log.d("Map", "$listener?.onLocationChanged($loc)")
-                    listener?.onLocationChanged(loc)
-                }
+                .combine(mapLocationListener) { loc, listener -> listener?.onLocationChanged(loc) }
                 .observeIn(owner)
 
             nonNullRealLocation
                 .take(1)
-                .onEach {
-                    Log.d("Map", "makeLocationAware moving camera to location=$it")
-                    animateCamera(CameraUpdateFactory.newLatLng(it.toLatLng()))
-                }
+                .onEach { animateCamera(newLatLng(it.toLatLng())) }
                 .launchIn(owner.lifecycleScope)
         }
 
