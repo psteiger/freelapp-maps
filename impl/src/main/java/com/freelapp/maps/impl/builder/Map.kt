@@ -22,6 +22,7 @@ import com.google.android.libraries.maps.model.Circle
 import com.google.android.libraries.maps.model.CircleOptions
 import com.google.android.libraries.maps.model.TileOverlayOptions
 import com.google.maps.android.heatmaps.HeatmapTileProvider
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -35,6 +36,7 @@ class MyGoogleMap(
 
     private val _cameraState = MutableStateFlow<CameraState>(CameraState.Idle(map.cameraPosition))
     private lateinit var circle: MutableStateFlow<Circle>
+    private val animations = MutableSharedFlow<CameraUpdate>()
 
     @ExperimentalCoroutinesApi
     val cameraCenter: StateFlow<CameraCenterState> =
@@ -67,10 +69,10 @@ class MyGoogleMap(
             )
         )
 
-        fun adjustZoomLevel(searchRadius: Int) {
+        suspend fun adjustZoomLevel(searchRadius: Int) {
             Log.d("Map", "Adjusting zoom level to searchRadius=$searchRadius")
             val cu = newLatLngZoom(map.cameraPosition.target, searchRadius.asZoomLevel())
-            map.animateCamera(cu)
+            animateCamera(cu)
         }
 
         cameraCenter
@@ -123,7 +125,7 @@ class MyGoogleMap(
                 .take(1)
                 .onEach {
                     Log.d("Map", "makeLocationAware moving camera to location=$it")
-                    map.moveCamera(CameraUpdateFactory.newLatLng(it.toLatLng()))
+                    animateCamera(CameraUpdateFactory.newLatLng(it.toLatLng()))
                 }
                 .launchIn(owner.lifecycleScope)
         }
@@ -150,13 +152,27 @@ class MyGoogleMap(
                 .observeIn(owner)
         }
 
-    fun moveCamera(cu: CameraUpdate) {
-        map.moveCamera(cu)
+    suspend fun animateCamera(cu: CameraUpdate) {
+        animations.emit(cu)
+    }
+
+    private fun runCameraUpdates(scope: CoroutineScope) {
+        animations
+            .onEach { cu ->
+                suspendCancellableCoroutine<Unit> { cont ->
+                    map.animateCamera(cu, object : GoogleMap.CancelableCallback {
+                        override fun onFinish() { cont.resume(Unit) }
+                        override fun onCancel() { cont.resume(Unit) }
+                    })
+                }
+            }
+            .launchIn(scope)
     }
 
     init {
         map.setOnCameraMoveListener { _cameraState.value = CameraState.Moving(map.cameraPosition) }
         map.setOnCameraIdleListener { _cameraState.value = CameraState.Idle(map.cameraPosition) }
+        runCameraUpdates(fragment.lifecycleScope)
     }
 }
 

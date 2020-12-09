@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.callbackFlow
 fun GoogleMap.locationListeners() =
     callbackFlow<LocationSource.OnLocationChangedListener?> {
         setLocationSource(object : LocationSource {
-            override fun activate(listener: LocationSource.OnLocationChangedListener?) {
+            override fun activate(listener: LocationSource.OnLocationChangedListener) {
                 runCatching { offer(listener) }
             }
             override fun deactivate() {
