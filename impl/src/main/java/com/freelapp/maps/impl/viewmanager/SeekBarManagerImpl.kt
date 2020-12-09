@@ -1,5 +1,6 @@
 package com.freelapp.maps.impl.viewmanager
 
+import android.content.Context
 import android.view.View
 import android.widget.SeekBar
 import androidx.lifecycle.DefaultLifecycleObserver
@@ -9,10 +10,11 @@ import com.freelapp.common.domain.usersearchradius.GetUserSearchRadiusUseCase
 import com.freelapp.common.domain.usersearchradius.SetUserSearchRadiusUseCase
 import com.freelapp.maps.components.SeekBarOwner
 import com.freelapp.maps.domain.SeekBarManager
-import com.freelapp.maps.impl.util.toLocalizedString
+import com.freelapp.maps.impl.R
 import kotlinx.coroutines.ObsoleteCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.actor
+import java.util.*
 import javax.inject.Inject
 
 class SeekBarManagerImpl @Inject constructor(
@@ -63,6 +65,15 @@ class SeekBarManagerImpl @Inject constructor(
             })
         }
     }
+
+    private fun Int.toLocalizedString(context: Context) =
+        if (Locale.getDefault().country == "US") {
+            val miles = context.getString(R.string.miles)
+            "${(this * 0.6213712).toInt()} $miles"
+        } else {
+            val km = context.getString(R.string.km)
+            "$this $km"
+        }
 
     init {
         lifecycleOwner.lifecycle.addObserver(this)

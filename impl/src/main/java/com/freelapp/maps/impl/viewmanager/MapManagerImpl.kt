@@ -2,8 +2,6 @@ package com.freelapp.maps.impl.viewmanager
 
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
-import android.content.Context
-import android.location.Location
 import android.view.View
 import android.view.ViewAnimationUtils
 import androidx.core.content.ContextCompat
@@ -16,22 +14,18 @@ import androidx.lifecycle.lifecycleScope
 import com.freelapp.common.domain.getglobaluserspositions.GetGlobalUsersPositionsUseCase
 import com.freelapp.common.domain.usersearchmode.SetUserSearchModeUseCase
 import com.freelapp.common.domain.usersearchradius.GetUserSearchRadiusUseCase
-import com.freelapp.common.entity.Mode
-import com.freelapp.components.snacker.domain.Snacker
+import com.freelapp.common.entity.SearchMode
 import com.freelapp.libs.locationfetcher.LocationSource
 import com.freelapp.maps.components.MapFragmentOwner
 import com.freelapp.maps.domain.MapManager
-import com.freelapp.maps.impl.R
 import com.freelapp.maps.impl.builder.*
 import com.freelapp.maps.impl.util.*
 import com.google.android.gms.common.api.Status
 import com.google.android.libraries.maps.CameraUpdateFactory
-import com.google.android.libraries.maps.GoogleMap
 import com.google.android.libraries.places.api.model.Place
 import com.google.android.libraries.places.widget.listener.PlaceSelectionListener
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.supervisorScope
 import kotlin.math.hypot
 
 class MapManagerImpl(
@@ -40,9 +34,7 @@ class MapManagerImpl(
     private val getUserSearchRadiusUseCase: GetUserSearchRadiusUseCase,
     private val getGlobalUsersPositionsUseCase: GetGlobalUsersPositionsUseCase,
     private val setUserSearchModeUseCase: SetUserSearchModeUseCase,
-    private val snacker: Snacker,
-    private val locationSource: LocationSource,
-    private val context: Context
+    private val locationSource: LocationSource
 ) : DefaultLifecycleObserver,
     MapManager {
 
@@ -59,14 +51,10 @@ class MapManagerImpl(
         placesFragment.view?.apply {
             setBackgroundColor(ContextCompat.getColor(context, android.R.color.white))
         }
-        worldwideButton.onClick(owner) {
+        worldwideButton.setOnClickListener {
             it.performHapticFeedback()
-            setWorldMode()
-//            if (mapInteractor.isSubscribed) {
-//                setWorldMode()
-//            } else {
-//                mapInteractor.subscribe()
-//            }
+            setUserSearchModeUseCase(SearchMode.Worldwide)
+            hideMap()
         }
         showMapButton.setOnClickListener {
             showMap()
@@ -77,15 +65,11 @@ class MapManagerImpl(
         owner.lifecycleScope.launch {
             mapFragment
                 .getMap { myMap ->
-                    centerButton.onClick(owner) {
+                    centerButton.setOnClickListener {
                         it.performHapticFeedback()
-                        myMap.map.setCustomLocation()
-
-//                        if (mapInteractor.isSubscribed) {
-//                            myMap.map.setCustomLocation()
-//                        } else {
-//                            mapInteractor.subscribe()
-//                        }
+                        val location = myMap.map.cameraPosition.target.toPair()
+                        setUserSearchModeUseCase(SearchMode.Nearby.Custom(location))
+                        hideMap()
                     }
                     myMap.addOnCameraMoveListener { centerButton.isGone = true }
                     myMap.addOnCameraIdleListener { centerButton.isVisible = true }
@@ -93,12 +77,11 @@ class MapManagerImpl(
                         .setPlaceFields(listOf(Place.Field.LAT_LNG))
                         .setOnPlaceSelectedListener(object : PlaceSelectionListener {
                             override fun onPlaceSelected(place: Place) {
-                                myMap.map.moveCamera(
-                                    CameraUpdateFactory.newLatLngZoom(
-                                        place.latLng,
-                                        getUserSearchRadiusUseCase().value.asZoomLevel()
-                                    )
+                                val cameraUpdate = CameraUpdateFactory.newLatLngZoom(
+                                    place.latLng,
+                                    getUserSearchRadiusUseCase().value.asZoomLevel()
                                 )
+                                myMap.map.moveCamera(cameraUpdate)
                             }
 
                             override fun onError(error: Status) {}
@@ -128,29 +111,7 @@ class MapManagerImpl(
             .start()
     }
 
-    private fun setWorldMode() {
-        setUserSearchModeUseCase(Mode.WORLD)
-        snacker(worldwideButton.context.getString(R.string.worldwide))
-        hideMap()
-    }
-
-    private suspend fun GoogleMap.setCustomLocation() = supervisorScope {
-        setUserSearchModeUseCase(Mode.NEARBY)
-        val location = cameraPosition.target.toLocation()
-        launch { location.showName() }
-        locationSource.setCustomLocation(location)
-        locationSource.setPreferredSource(LocationSource.Source.CUSTOM)
-        hideMap()
-    }
-
     override fun mapIsShowing() = mapContainer.visibility == View.VISIBLE
-
-    private suspend fun Location.showName() {
-        getName(context)?.let { name ->
-            val radius = getUserSearchRadiusUseCase().value.toLocalizedString(context)
-            snacker("$name ($radius)")
-        }
-    }
 
     private fun createAnimator(type: AnimationType): Animator {
         // get the center for the clipping circle
