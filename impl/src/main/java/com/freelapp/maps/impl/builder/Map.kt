@@ -15,7 +15,7 @@ import com.freelapp.maps.impl.ktx.locationListeners
 import com.freelapp.maps.impl.ktx.toLatLng
 import com.google.android.libraries.maps.CameraUpdate
 import com.google.android.libraries.maps.CameraUpdateFactory
-import com.google.android.libraries.maps.CameraUpdateFactory.newLatLngZoom
+import com.google.android.libraries.maps.CameraUpdateFactory.zoomTo
 import com.google.android.libraries.maps.GoogleMap
 import com.google.android.libraries.maps.SupportMapFragment
 import com.google.android.libraries.maps.model.Circle
@@ -71,7 +71,7 @@ class MyGoogleMap(
 
         suspend fun adjustZoomLevel(searchRadius: Int) {
             Log.d("Map", "Adjusting zoom level to searchRadius=$searchRadius")
-            val cu = newLatLngZoom(map.cameraPosition.target, searchRadius.asZoomLevel())
+            val cu = zoomTo(searchRadius.asZoomLevel())
             animateCamera(cu)
         }
 
