@@ -149,7 +149,7 @@ class MyGoogleMap(
                 .observeIn(owner)
         }
 
-    suspend fun animateCamera(cu: CameraUpdate) {
+    private suspend fun animateCamera(cu: CameraUpdate) {
         suspendCancellableCoroutine<Unit> { cont ->
             map.animateCamera(cu, object : GoogleMap.CancelableCallback {
                 override fun onFinish() { cont.resume(Unit) }

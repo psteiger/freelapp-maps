@@ -77,7 +77,7 @@ class MapManagerImpl @Inject constructor(
                     .onEach {
                         val zoomLevel = getUserSearchRadiusUseCase().value.asZoomLevel()
                         val cameraUpdate = CameraUpdateFactory.newLatLngZoom(it.latLng, zoomLevel)
-                        map.animateCamera(cameraUpdate)
+                        map.scheduleCameraAnimation(cameraUpdate)
                     }
                     .observeIn(owner)
             }
