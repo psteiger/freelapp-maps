@@ -8,16 +8,18 @@ import com.freelapp.maps.domain.MapInteractor
 import com.freelapp.maps.domain.MapManager
 import com.freelapp.maps.impl.viewmanager.MapManagerImpl
 
-fun MapManager.create(
-    mapFragmentOwner: MapFragmentOwner,
-    lifecycleOwner: LifecycleOwner,
-    mapInteractor: MapInteractor,
-    locationSource: LocationSource,
-    context: Context
-): MapManager = MapManagerImpl(
-    mapFragmentOwner,
-    lifecycleOwner,
-    mapInteractor,
-    locationSource,
-    context
-)
+object MapManagerFactory {
+    fun create(
+        mapFragmentOwner: MapFragmentOwner,
+        lifecycleOwner: LifecycleOwner,
+        mapInteractor: MapInteractor,
+        locationSource: LocationSource,
+        context: Context
+    ): MapManager = MapManagerImpl(
+        mapFragmentOwner,
+        lifecycleOwner,
+        mapInteractor,
+        locationSource,
+        context
+    )
+}
