@@ -8,7 +8,7 @@ buildscript {
         play_core_version = '1.8.3'
         maps_version = '3.1.0-beta'
         locationfetcher_version = '5.18'
-        freelapp_common_version = '072c9b7e8f'
+        freelapp_common_version = '3fc0a1cc08'
     }
     repositories {
         google()
