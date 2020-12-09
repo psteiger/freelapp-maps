@@ -18,6 +18,7 @@ import com.freelapp.flowlifecycleobserver.observeIn
 import com.freelapp.libs.locationfetcher.LocationSource
 import com.freelapp.maps.components.MapFragmentOwner
 import com.freelapp.maps.domain.MapManager
+import com.freelapp.maps.impl.builder.MyGoogleMap
 import com.freelapp.maps.impl.builder.asZoomLevel
 import com.freelapp.maps.impl.builder.getMap
 import com.freelapp.maps.impl.entity.CameraState
@@ -57,36 +58,12 @@ class MapManagerImpl @Inject constructor(
         placesFragment.view?.apply {
             setBackgroundColor(ContextCompat.getColor(context, android.R.color.white))
         }
-        worldwideButton.setOnClickListener {
-            it.performHapticFeedback()
-            setUserSearchModeUseCase(SearchMode.Worldwide)
-            hideMap()
-        }
-        showMapButton.setOnClickListener {
-            showMap()
-        }
-        closeMapButton.setOnClickListener {
-            hideMap()
-        }
         owner.lifecycleScope.launch {
-            val map =
-                mapFragment
-                    .getMap()
-                    .makeCircleMap(owner, getUserSearchRadiusUseCase)
-                    .makeLocationAware(owner, locationSource.realLocation.filterNotNull())
-                    .makeHeatMap(owner, getGlobalUsersPositionsUseCase)
-
-            centerButton.setOnClickListener {
-                it.performHapticFeedback()
-                val location = map.cameraState.value.position.target.toPair()
-                setUserSearchModeUseCase(SearchMode.Nearby.Custom(location))
-                hideMap()
-            }
-
+            val map = createMap(owner)
+            map.setButtonClickListeners()
             map.cameraState
-                .onEach { centerButton.isVisible = it is CameraState.Moving }
+                .onEach { centerButton.isVisible = it is CameraState.Idle }
                 .observeIn(owner)
-
             placesFragment.setPlaceFields(listOf(Place.Field.LAT_LNG))
             placesFragment
                 .selectedPlaces()
@@ -98,6 +75,34 @@ class MapManagerImpl @Inject constructor(
                 .observeIn(owner)
         }
     }
+
+    private fun MyGoogleMap.setButtonClickListeners() {
+        worldwideButton.setOnClickListener {
+            it.performHapticFeedback()
+            setUserSearchModeUseCase(SearchMode.Worldwide)
+            hideMap()
+        }
+        showMapButton.setOnClickListener {
+            showMap()
+        }
+        closeMapButton.setOnClickListener {
+            hideMap()
+        }
+        centerButton.setOnClickListener {
+            it.performHapticFeedback()
+            val location = cameraState.value.position.target.toPair()
+            setUserSearchModeUseCase(SearchMode.Nearby.Custom(location))
+            hideMap()
+        }
+    }
+
+    @ExperimentalCoroutinesApi
+    private suspend fun createMap(owner: LifecycleOwner) =
+        mapFragment
+            .getMap()
+            .makeCircleMap(owner, getUserSearchRadiusUseCase)
+            .makeLocationAware(owner, locationSource.realLocation.filterNotNull())
+            .makeHeatMap(owner, getGlobalUsersPositionsUseCase)
 
     override fun showMap() {
         mapContainer.isVisible = true

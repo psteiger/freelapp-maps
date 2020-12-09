@@ -52,7 +52,6 @@ class MyGoogleMap(private val map: GoogleMap) {
                 center = state.position.target
                 radius = (searchRadius * 1000).toDouble()
             }
-            if
             adjustZoomLevel(searchRadius)
         }.observeIn(owner)
     }
