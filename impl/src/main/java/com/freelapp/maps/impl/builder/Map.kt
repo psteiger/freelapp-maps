@@ -22,11 +22,8 @@ import com.google.android.libraries.maps.model.Circle
 import com.google.android.libraries.maps.model.CircleOptions
 import com.google.android.libraries.maps.model.TileOverlayOptions
 import com.google.maps.android.heatmaps.HeatmapTileProvider
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 import kotlin.math.ln
 
@@ -73,7 +70,7 @@ class MyGoogleMap(
         suspend fun adjustZoomLevel(searchRadius: Int) {
             Log.d("Map", "Adjusting zoom level to searchRadius=$searchRadius")
             val cu = zoomTo(searchRadius.asZoomLevel())
-            animateCamera(cu)
+            scheduleCameraAnimation(cu)
         }
 
         cameraCenter
@@ -101,7 +98,7 @@ class MyGoogleMap(
                 val location = locationSource.realLocation.replayCache.last()
                     ?: return@setOnMyLocationButtonClickListener true
                 val cu = newLatLng(location.toLatLng())
-                owner.lifecycleScope.launch { animateCamera(cu) }
+                owner.lifecycleScope.launch { scheduleCameraAnimation(cu) }
                 true
             }
             locationFetcher
@@ -126,7 +123,7 @@ class MyGoogleMap(
 
             nonNullRealLocation
                 .take(1)
-                .onEach { animateCamera(newLatLng(it.toLatLng())) }
+                .onEach { scheduleCameraAnimation(newLatLng(it.toLatLng())) }
                 .launchIn(owner.lifecycleScope)
         }
 
@@ -153,17 +150,23 @@ class MyGoogleMap(
         }
 
     suspend fun animateCamera(cu: CameraUpdate) {
+        suspendCancellableCoroutine<Unit> { cont ->
+            map.animateCamera(cu, object : GoogleMap.CancelableCallback {
+                override fun onFinish() { cont.resume(Unit) }
+                override fun onCancel() { cont.resume(Unit) }
+            })
+        }
+    }
+
+    suspend fun scheduleCameraAnimation(cu: CameraUpdate) {
         animations.emit(cu)
     }
 
     private fun runCameraUpdates(scope: CoroutineScope) {
         animations
-            .onEach { cu ->
-                suspendCancellableCoroutine<Unit> { cont ->
-                    map.animateCamera(cu, object : GoogleMap.CancelableCallback {
-                        override fun onFinish() { cont.resume(Unit) }
-                        override fun onCancel() { cont.resume(Unit) }
-                    })
+            .onEach {
+                coroutineScope { // Camera moved during a cancellation
+                    launch { animateCamera(it) }.join()
                 }
             }
             .launchIn(scope)
