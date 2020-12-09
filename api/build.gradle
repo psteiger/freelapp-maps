@@ -39,7 +39,7 @@ dependencies {
     implementation project(path: ':view')
     implementation project(path: ':impl')
     implementation "com.github.psteiger.freelapp-common:usecase:$freelapp_common_version"
-    implementation 'com.github.psteiger.freelapp-snacker:domain:ac491638dd'
+    implementation "com.github.psteiger.freelapp-snacker:domain:$freelapp_snacker_version"
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
 
     // Lifecycle
