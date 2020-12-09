@@ -55,12 +55,11 @@ class MapManagerImpl(
             placesFragment.view?.apply {
                 setBackgroundColor(ContextCompat.getColor(context, android.R.color.white))
             }
-
             worldwideButton.onClick(lifecycleOwner) {
                 it.performHapticFeedback()
                 if (mapInteractor.isSubscribed) {
                     hideMap()
-                    mapInteractor.showSnackBar(worldwideButton.context.getString(R.string.worldwide))
+                    setWorldMode()
                 } else {
                     mapInteractor.subscribe()
                 }
@@ -73,6 +72,15 @@ class MapManagerImpl(
             }
             mapFragment
                 .getMap { myMap ->
+                    centerButton.onClick(lifecycleOwner) {
+                        it.performHapticFeedback()
+                        if (mapInteractor.isSubscribed) {
+                            hideMap()
+                            myMap.map.setCustomLocation()
+                        } else {
+                            mapInteractor.subscribe()
+                        }
+                    }
                     myMap.addOnCameraMoveListener { centerButton.isGone = true }
                     myMap.addOnCameraIdleListener { centerButton.isVisible = true }
                     placesFragment
@@ -89,22 +97,6 @@ class MapManagerImpl(
 
                             override fun onError(error: Status) {}
                         })
-                    worldwideButton.onClick(lifecycleOwner) {
-                        it.performHapticFeedback()
-                        if (mapInteractor.isSubscribed) {
-                            setWorldMode()
-                        } else {
-                            mapInteractor.subscribe()
-                        }
-                    }
-                    centerButton.onClick(lifecycleOwner) {
-                        it.performHapticFeedback()
-                        if (mapInteractor.isSubscribed) {
-                            myMap.map.setCustomLocation()
-                        } else {
-                            mapInteractor.subscribe()
-                        }
-                    }
                 }
                 .makeCircleMap(owner, mapInteractor.searchRadiusFlow)
                 .makeLocationAware(owner, locationSource.realLocation.filterNotNull())
