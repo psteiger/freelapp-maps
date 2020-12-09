@@ -17,7 +17,6 @@ import com.freelapp.maps.impl.ktx.rounded
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.ObsoleteCoroutinesApi
 import kotlinx.coroutines.flow.conflate
-import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.onEach
 import java.util.*
 import javax.inject.Inject
@@ -38,19 +37,10 @@ class SeekBarManagerImpl @Inject constructor(
             max = 2000
             progress = getUserSearchRadiusUseCase().value
         }
+        observeSeekBarChanges(owner)
     }
 
-    private fun Int.toLocalizedString(context: Context) =
-        if (Locale.getDefault().country == "US") {
-            val miles = context.getString(R.string.miles)
-            "${(this * 0.6213712).toInt()} $miles"
-        } else {
-            val km = context.getString(R.string.km)
-            "$this $km"
-        }
-
-    init {
-        lifecycleOwner.lifecycle.addObserver(this)
+    private fun observeSeekBarChanges(owner: LifecycleOwner) =
         seekBarOwner
             .getSeekBar()
             .changes()
@@ -64,6 +54,18 @@ class SeekBarManagerImpl @Inject constructor(
                     setUserSearchRadiusUseCase(it.sb.progress.rounded())
                 }
             }
-            .observeIn(lifecycleOwner)
+            .observeIn(owner)
+
+    private fun Int.toLocalizedString(context: Context) =
+        if (Locale.getDefault().country == "US") {
+            val miles = context.getString(R.string.miles)
+            "${(this * 0.6213712).toInt()} $miles"
+        } else {
+            val km = context.getString(R.string.km)
+            "$this $km"
+        }
+
+    init {
+        lifecycleOwner.lifecycle.addObserver(this)
     }
 }
