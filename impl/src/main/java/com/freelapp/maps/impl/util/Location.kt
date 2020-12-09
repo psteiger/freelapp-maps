@@ -42,7 +42,7 @@ internal suspend fun LatLng.getAddresses(context: Context): List<Address>? =
 
 internal typealias Distance = Int
 
-fun Distance.toLocalizedString(context: Context) =
+internal fun Distance.toLocalizedString(context: Context) =
     if (Locale.getDefault().country == "US") {
         val miles = context.getString(R.string.miles)
         "${(this * 0.6213712).toInt()} $miles"
@@ -51,6 +51,6 @@ fun Distance.toLocalizedString(context: Context) =
         "$this $km"
     }
 
-fun Pair<Double, Double>.toLatLng() = LatLng(first, second)
+internal fun Pair<Double, Double>.toLatLng() = LatLng(first, second)
 
-fun Iterable<Pair<Double, Double>>.toLatLng() = map { it.toLatLng() }
+internal fun Iterable<Pair<Double, Double>>.toLatLng() = map { it.toLatLng() }

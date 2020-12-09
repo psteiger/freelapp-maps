@@ -3,8 +3,8 @@
   <component name="CompilerConfiguration">
     <bytecodeTargetLevel target="1.8">
       <module name="freelapp-maps.api" target="11" />
-      <module name="freelapp-maps.components" target="11" />
       <module name="freelapp-maps.impl" target="11" />
+      <module name="freelapp-maps.view" target="11" />
     </bytecodeTargetLevel>
   </component>
 </project>

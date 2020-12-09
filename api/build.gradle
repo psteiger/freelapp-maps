@@ -24,8 +24,10 @@ android {
 
 dependencies {
     implementation project(path: ':domain')
-    implementation project(path: ':components')
+    implementation project(path: ':view')
     implementation project(path: ':impl')
+    implementation 'com.github.psteiger.freelapp-common:usecase:9da8069bcc'
+    implementation 'com.github.psteiger.freelapp-snacker:domain:ac491638dd'
     implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
 
     // Lifecycle

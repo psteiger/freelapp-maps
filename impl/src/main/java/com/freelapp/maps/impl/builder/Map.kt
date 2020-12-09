@@ -3,9 +3,10 @@ package com.freelapp.maps.impl.builder
 import android.location.Location
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
+import com.freelapp.common.domain.getglobaluserspositions.GetGlobalUsersPositionsUseCase
+import com.freelapp.common.domain.usersearchradius.GetUserSearchRadiusUseCase
 import com.freelapp.flowlifecycleobserver.observe
 import com.freelapp.flowlifecycleobserver.observeIn
-import com.freelapp.maps.domain.MapInteractor
 import com.freelapp.maps.impl.util.toLatLng
 import com.freelapp.maps.impl.util.toLocation
 import com.google.android.libraries.maps.CameraUpdateFactory
@@ -19,7 +20,9 @@ import com.google.android.libraries.maps.model.LatLng
 import com.google.android.libraries.maps.model.TileOverlayOptions
 import com.google.maps.android.heatmaps.HeatmapTileProvider
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.withContext
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
@@ -43,7 +46,7 @@ class MyGoogleMap(val map: GoogleMap) {
     }
 }
 
-suspend fun SupportMapFragment.getMap(fn: (MyGoogleMap) -> Unit): MyGoogleMap =
+internal suspend fun SupportMapFragment.getMap(fn: (MyGoogleMap) -> Unit): MyGoogleMap =
     withContext(Dispatchers.Main) {
         suspendCoroutine<MyGoogleMap> {
             getMapAsync { map -> it.resume(MyGoogleMap(map)) }
@@ -52,9 +55,9 @@ suspend fun SupportMapFragment.getMap(fn: (MyGoogleMap) -> Unit): MyGoogleMap =
         }
     }
 
-fun MyGoogleMap.makeCircleMap(
+internal fun MyGoogleMap.makeCircleMap(
     owner: LifecycleOwner,
-    searchRadiusFlow: StateFlow<Int>
+    getUserSearchRadiusUseCase: GetUserSearchRadiusUseCase
 ): MyGoogleMap = apply {
     var circle: Circle? = null
 
@@ -81,21 +84,21 @@ fun MyGoogleMap.makeCircleMap(
 
     fun onCameraMove() {
         val center = map.cameraPosition.target.toLocation().toLatLng()
-        val radius = searchRadiusFlow.value
+        val radius = getUserSearchRadiusUseCase().value
         drawCircle(center, radius)
     }
 
     addOnCameraMoveListener { onCameraMove() }
     addOnCameraIdleListener { onCameraMove() }
 
-    searchRadiusFlow.observe(owner) { radius ->
+    getUserSearchRadiusUseCase().observe(owner) { radius ->
         val center = map.cameraPosition.target.toLocation().toLatLng()
         drawCircle(center, radius)
         adjustZoomLevel(radius)
     }
 }
 
-fun MyGoogleMap.makeLocationAware(
+internal fun MyGoogleMap.makeLocationAware(
     owner: LifecycleOwner,
     realLocation: Flow<Location>,
     onMyLocationButtonClickListener: GoogleMap.OnMyLocationButtonClickListener? = null
@@ -125,13 +128,12 @@ fun MyGoogleMap.makeLocationAware(
     }
 }
 
-fun MyGoogleMap.makeHeatMap(
+internal fun MyGoogleMap.makeHeatMap(
     lifecycleOwner: LifecycleOwner,
-    mapInteractor: MapInteractor
+    getGlobalUsersPositionsUseCase: GetGlobalUsersPositionsUseCase
 ): MyGoogleMap = apply {
     var provider: HeatmapTileProvider? = null
-    mapInteractor
-        .globalUsersPositions
+    getGlobalUsersPositionsUseCase()
         .onEach {
             if (provider == null) {
                 provider = HeatmapTileProvider.Builder()
@@ -146,5 +148,5 @@ fun MyGoogleMap.makeHeatMap(
         .observeIn(lifecycleOwner)
 }
 
-fun Int.asZoomLevel(): Float =
+internal fun Int.asZoomLevel(): Float =
     (15.5 - ln(((toInt() * 1000) / 500).toDouble()) / ln(2.0)).toFloat()

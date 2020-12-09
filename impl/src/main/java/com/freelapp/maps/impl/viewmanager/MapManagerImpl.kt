@@ -13,15 +13,17 @@ import androidx.core.view.isVisible
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
+import com.freelapp.common.domain.getglobaluserspositions.GetGlobalUsersPositionsUseCase
+import com.freelapp.common.domain.usersearchmode.SetUserSearchModeUseCase
+import com.freelapp.common.domain.usersearchradius.GetUserSearchRadiusUseCase
+import com.freelapp.common.entity.Mode
+import com.freelapp.components.snacker.domain.Snacker
 import com.freelapp.libs.locationfetcher.LocationSource
 import com.freelapp.maps.components.MapFragmentOwner
-import com.freelapp.maps.domain.MapInteractor
 import com.freelapp.maps.domain.MapManager
 import com.freelapp.maps.impl.R
 import com.freelapp.maps.impl.builder.*
 import com.freelapp.maps.impl.util.*
-import com.freelapp.maps.impl.util.getName
-import com.freelapp.maps.impl.util.toLocation
 import com.google.android.gms.common.api.Status
 import com.google.android.libraries.maps.CameraUpdateFactory
 import com.google.android.libraries.maps.GoogleMap
@@ -33,9 +35,12 @@ import kotlinx.coroutines.supervisorScope
 import kotlin.math.hypot
 
 class MapManagerImpl(
+    lifecycleOwner: LifecycleOwner,
     mapFragmentOwner: MapFragmentOwner,
-    private val lifecycleOwner: LifecycleOwner,
-    private val mapInteractor: MapInteractor,
+    private val getUserSearchRadiusUseCase: GetUserSearchRadiusUseCase,
+    private val getGlobalUsersPositionsUseCase: GetGlobalUsersPositionsUseCase,
+    private val setUserSearchModeUseCase: SetUserSearchModeUseCase,
+    private val snacker: Snacker,
     private val locationSource: LocationSource,
     private val context: Context
 ) : DefaultLifecycleObserver,
@@ -54,13 +59,14 @@ class MapManagerImpl(
         placesFragment.view?.apply {
             setBackgroundColor(ContextCompat.getColor(context, android.R.color.white))
         }
-        worldwideButton.onClick(lifecycleOwner) {
+        worldwideButton.onClick(owner) {
             it.performHapticFeedback()
-            if (mapInteractor.isSubscribed) {
-                setWorldMode()
-            } else {
-                mapInteractor.subscribe()
-            }
+            setWorldMode()
+//            if (mapInteractor.isSubscribed) {
+//                setWorldMode()
+//            } else {
+//                mapInteractor.subscribe()
+//            }
         }
         showMapButton.setOnClickListener {
             showMap()
@@ -68,16 +74,18 @@ class MapManagerImpl(
         closeMapButton.setOnClickListener {
             hideMap()
         }
-        lifecycleOwner.lifecycleScope.launch {
+        owner.lifecycleScope.launch {
             mapFragment
                 .getMap { myMap ->
-                    centerButton.onClick(lifecycleOwner) {
+                    centerButton.onClick(owner) {
                         it.performHapticFeedback()
-                        if (mapInteractor.isSubscribed) {
-                            myMap.map.setCustomLocation()
-                        } else {
-                            mapInteractor.subscribe()
-                        }
+                        myMap.map.setCustomLocation()
+
+//                        if (mapInteractor.isSubscribed) {
+//                            myMap.map.setCustomLocation()
+//                        } else {
+//                            mapInteractor.subscribe()
+//                        }
                     }
                     myMap.addOnCameraMoveListener { centerButton.isGone = true }
                     myMap.addOnCameraIdleListener { centerButton.isVisible = true }
@@ -88,7 +96,7 @@ class MapManagerImpl(
                                 myMap.map.moveCamera(
                                     CameraUpdateFactory.newLatLngZoom(
                                         place.latLng,
-                                        mapInteractor.searchRadius.asZoomLevel()
+                                        getUserSearchRadiusUseCase().value.asZoomLevel()
                                     )
                                 )
                             }
@@ -96,9 +104,9 @@ class MapManagerImpl(
                             override fun onError(error: Status) {}
                         })
                 }
-                .makeCircleMap(owner, mapInteractor.searchRadiusFlow)
+                .makeCircleMap(owner, getUserSearchRadiusUseCase)
                 .makeLocationAware(owner, locationSource.realLocation.filterNotNull())
-                .makeHeatMap(owner, mapInteractor)
+                .makeHeatMap(owner, getGlobalUsersPositionsUseCase)
         }
     }
 
@@ -121,13 +129,13 @@ class MapManagerImpl(
     }
 
     private fun setWorldMode() {
-        mapInteractor.mode.value = MapInteractor.Mode.WORLD
-        mapInteractor.showSnackBar(worldwideButton.context.getString(R.string.worldwide))
+        setUserSearchModeUseCase(Mode.WORLD)
+        snacker(worldwideButton.context.getString(R.string.worldwide))
         hideMap()
     }
 
     private suspend fun GoogleMap.setCustomLocation() = supervisorScope {
-        mapInteractor.mode.value = MapInteractor.Mode.NEARBY
+        setUserSearchModeUseCase(Mode.NEARBY)
         val location = cameraPosition.target.toLocation()
         launch { location.showName() }
         locationSource.setCustomLocation(location)
@@ -139,8 +147,8 @@ class MapManagerImpl(
 
     private suspend fun Location.showName() {
         getName(context)?.let { name ->
-            val radius = mapInteractor.searchRadius.toLocalizedString(context)
-            mapInteractor.showSnackBar("$name ($radius)")
+            val radius = getUserSearchRadiusUseCase().value.toLocalizedString(context)
+            snacker("$name ($radius)")
         }
     }
 
