@@ -2,6 +2,7 @@ package com.freelapp.maps.impl.viewmanager
 
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
+import android.util.Log
 import android.view.View
 import android.view.ViewAnimationUtils
 import androidx.core.content.ContextCompat
@@ -84,7 +85,9 @@ class MapManagerImpl(
                                 myMap.map.moveCamera(cameraUpdate)
                             }
 
-                            override fun onError(error: Status) {}
+                            override fun onError(error: Status) {
+                                Log.e("MapManagerImpl", "on error: $error")
+                            }
                         })
                 }
                 .makeCircleMap(owner, getUserSearchRadiusUseCase)
