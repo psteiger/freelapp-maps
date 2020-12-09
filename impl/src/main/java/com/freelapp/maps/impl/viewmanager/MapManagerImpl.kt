@@ -18,10 +18,11 @@ import com.freelapp.flowlifecycleobserver.observeIn
 import com.freelapp.libs.locationfetcher.LocationSource
 import com.freelapp.maps.components.MapFragmentOwner
 import com.freelapp.maps.domain.MapManager
+import com.freelapp.maps.domain.SeekBarManager
 import com.freelapp.maps.impl.builder.MyGoogleMap
 import com.freelapp.maps.impl.builder.asZoomLevel
 import com.freelapp.maps.impl.builder.getMap
-import com.freelapp.maps.impl.entity.CameraState
+import com.freelapp.maps.impl.entity.CameraCenterState
 import com.freelapp.maps.impl.ktx.performHapticFeedback
 import com.freelapp.maps.impl.ktx.selectedPlaces
 import com.freelapp.maps.impl.ktx.toPair
@@ -35,12 +36,13 @@ import javax.inject.Inject
 import kotlin.math.hypot
 
 class MapManagerImpl @Inject constructor(
-    lifecycleOwner: LifecycleOwner,
+    owner: LifecycleOwner,
     private val mapFragmentOwner: MapFragmentOwner,
     private val getUserSearchRadiusUseCase: GetUserSearchRadiusUseCase,
     private val getGlobalUsersPositionsUseCase: GetGlobalUsersPositionsUseCase,
     private val setUserSearchModeUseCase: SetUserSearchModeUseCase,
-    private val locationSource: LocationSource
+    private val locationSource: LocationSource,
+    private val seekBarManager: SeekBarManager
 ) : DefaultLifecycleObserver,
     MapManager {
 
@@ -59,23 +61,28 @@ class MapManagerImpl @Inject constructor(
             setBackgroundColor(ContextCompat.getColor(context, android.R.color.white))
         }
         owner.lifecycleScope.launch {
-            val map = createMap(owner)
-            map.setButtonClickListeners()
-            map.cameraState
-                .onEach { centerButton.isVisible = it is CameraState.Idle }
-                .observeIn(owner)
-            placesFragment.setPlaceFields(listOf(Place.Field.LAT_LNG))
-            placesFragment
-                .selectedPlaces()
-                .onEach {
-                    val zoomLevel = getUserSearchRadiusUseCase().value.asZoomLevel()
-                    val cameraUpdate = CameraUpdateFactory.newLatLngZoom(it.latLng, zoomLevel)
-                    map.moveCamera(cameraUpdate)
-                }
-                .observeIn(owner)
+            val map = createMap().also {
+                it.setButtonClickListeners()
+                it.cameraCenter
+                    .onEach { centerState ->
+                        centerButton.isVisible = centerState is CameraCenterState.Idle
+                    }
+                    .observeIn(owner)
+            }
+            placesFragment.apply {
+                setPlaceFields(listOf(Place.Field.LAT_LNG))
+                selectedPlaces()
+                    .onEach {
+                        val zoomLevel = getUserSearchRadiusUseCase().value.asZoomLevel()
+                        val cameraUpdate = CameraUpdateFactory.newLatLngZoom(it.latLng, zoomLevel)
+                        map.moveCamera(cameraUpdate)
+                    }
+                    .observeIn(owner)
+            }
         }
     }
 
+    @ExperimentalCoroutinesApi
     private fun MyGoogleMap.setButtonClickListeners() {
         worldwideButton.setOnClickListener {
             it.performHapticFeedback()
@@ -90,19 +97,19 @@ class MapManagerImpl @Inject constructor(
         }
         centerButton.setOnClickListener {
             it.performHapticFeedback()
-            val location = cameraState.value.position.target.toPair()
+            val location = cameraCenter.value.position.toPair()
             setUserSearchModeUseCase(SearchMode.Nearby.Custom(location))
             hideMap()
         }
     }
 
     @ExperimentalCoroutinesApi
-    private suspend fun createMap(owner: LifecycleOwner) =
+    private suspend fun createMap() =
         mapFragment
             .getMap()
-            .makeCircleMap(owner, getUserSearchRadiusUseCase)
-            .makeLocationAware(owner, locationSource.realLocation.filterNotNull())
-            .makeHeatMap(owner, getGlobalUsersPositionsUseCase)
+            .makeCircleMap(mapFragment, seekBarManager.seekBarChanges)
+            .makeHeatMap(mapFragment, getGlobalUsersPositionsUseCase)
+            .makeLocationAware(mapFragment, locationSource.realLocation.filterNotNull())
 
     override fun showMap() {
         mapContainer.isVisible = true
@@ -144,6 +151,6 @@ class MapManagerImpl @Inject constructor(
     enum class AnimationType { HIDE, SHOW }
 
     init {
-        lifecycleOwner.lifecycle.addObserver(this)
+        owner.lifecycle.addObserver(this)
     }
 }

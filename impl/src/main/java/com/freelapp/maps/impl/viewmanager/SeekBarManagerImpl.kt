@@ -5,30 +5,44 @@ import android.view.View
 import androidx.core.view.isVisible
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.lifecycleScope
 import com.freelapp.common.domain.usersearchradius.GetUserSearchRadiusUseCase
 import com.freelapp.common.domain.usersearchradius.SetUserSearchRadiusUseCase
 import com.freelapp.flowlifecycleobserver.observeIn
 import com.freelapp.maps.components.SeekBarOwner
 import com.freelapp.maps.domain.SeekBarManager
 import com.freelapp.maps.impl.R
-import com.freelapp.maps.impl.entity.SeekBarProgress
+import com.freelapp.maps.domain.entity.SeekBarProgress
 import com.freelapp.maps.impl.ktx.changes
 import com.freelapp.maps.impl.ktx.rounded
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.ObsoleteCoroutinesApi
-import kotlinx.coroutines.flow.conflate
-import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.flow.*
 import java.util.*
 import javax.inject.Inject
 
 @ExperimentalCoroutinesApi
 class SeekBarManagerImpl @Inject constructor(
-    lifecycleOwner: LifecycleOwner,
+    owner: LifecycleOwner,
+    @ApplicationContext private val context: Context,
     private val seekBarOwner: SeekBarOwner,
     private val getUserSearchRadiusUseCase: GetUserSearchRadiusUseCase,
     private val setUserSearchRadiusUseCase: SetUserSearchRadiusUseCase
 ) : SeekBarManager,
     DefaultLifecycleObserver {
+
+    override val seekBarChanges: StateFlow<SeekBarProgress> by lazy {
+        val seekBar = seekBarOwner.getSeekBar()
+        seekBar
+            .changes()
+            .conflate()
+            .stateIn(
+                owner.lifecycleScope,
+                SharingStarted.Eagerly,
+                SeekBarProgress.Stop(seekBar.progress)
+            )
+    }
 
     @ObsoleteCoroutinesApi
     override fun onCreate(owner: LifecycleOwner) {
@@ -41,22 +55,27 @@ class SeekBarManagerImpl @Inject constructor(
     }
 
     private fun observeSeekBarChanges(owner: LifecycleOwner) =
-        seekBarOwner
-            .getSeekBar()
-            .changes()
-            .conflate()
-            .onEach {
-                seekBarOwner.getSeekBarHint().isVisible = it is SeekBarProgress.Change
-                if (it is SeekBarProgress.Change) {
-                    seekBarOwner.getSeekBarHint().text =
-                        it.progress.rounded().toLocalizedString(it.sb.context)
-                } else if (it is SeekBarProgress.Stop) {
-                    setUserSearchRadiusUseCase(it.sb.progress.rounded())
+        seekBarChanges
+            .onEach { progress ->
+                seekBarOwner.hideShowHint(progress is SeekBarProgress.Change)
+                if (progress is SeekBarProgress.Change) {
+                    setHintText(progress)
+                } else if (progress is SeekBarProgress.Stop) {
+                    setUserSearchRadiusUseCase(progress.progress.rounded())
                 }
             }
             .observeIn(owner)
 
-    private fun Int.toLocalizedString(context: Context) =
+    private fun SeekBarOwner.hideShowHint(show: Boolean) {
+        listOf(getSeekBarHint(), getSeekBarHintContainer())
+            .forEach { it.isVisible = show }
+    }
+
+    private fun setHintText(progress: SeekBarProgress.Change) {
+        seekBarOwner.getSeekBarHint().text =
+            progress.progress.rounded().toLocalizedString()
+    }
+    private fun Int.toLocalizedString() =
         if (Locale.getDefault().country == "US") {
             val miles = context.getString(R.string.miles)
             "${(this * 0.6213712).toInt()} $miles"
@@ -66,6 +85,6 @@ class SeekBarManagerImpl @Inject constructor(
         }
 
     init {
-        lifecycleOwner.lifecycle.addObserver(this)
+        owner.lifecycle.addObserver(this)
     }
 }

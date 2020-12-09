@@ -6,6 +6,8 @@ import androidx.lifecycle.lifecycleScope
 import com.freelapp.common.domain.getglobaluserspositions.GetGlobalUsersPositionsUseCase
 import com.freelapp.common.domain.usersearchradius.GetUserSearchRadiusUseCase
 import com.freelapp.flowlifecycleobserver.observeIn
+import com.freelapp.maps.domain.entity.SeekBarProgress
+import com.freelapp.maps.impl.entity.CameraCenterState
 import com.freelapp.maps.impl.entity.CameraState
 import com.freelapp.maps.impl.ktx.locationListeners
 import com.freelapp.maps.impl.ktx.toLatLng
@@ -20,23 +22,44 @@ import com.google.android.libraries.maps.model.TileOverlayOptions
 import com.google.maps.android.heatmaps.HeatmapTileProvider
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 import kotlin.math.ln
 
-class MyGoogleMap(private val map: GoogleMap) {
+class MyGoogleMap(
+    fragment: SupportMapFragment,
+    private val map: GoogleMap
+) {
 
-    val cameraState = MutableStateFlow<CameraState>(CameraState.Idle(map.cameraPosition))
+    private val _cameraState = MutableStateFlow<CameraState>(CameraState.Idle(map.cameraPosition))
 
+    @ExperimentalCoroutinesApi
+    val cameraCenter: StateFlow<CameraCenterState> =
+        _cameraState
+            .mapLatest {
+                val newCenter = it.position.target
+                when (it) {
+                    is CameraState.Moving -> CameraCenterState.Moving(newCenter)
+                    is CameraState.Idle -> CameraCenterState.Idle(newCenter)
+                }
+            }
+            .stateIn(
+                fragment.lifecycleScope,
+                SharingStarted.Eagerly,
+                CameraCenterState.Idle(map.cameraPosition.target)
+            )
+
+    @ExperimentalCoroutinesApi
     fun makeCircleMap(
         owner: LifecycleOwner,
-        getUserSearchRadiusUseCase: GetUserSearchRadiusUseCase
+        seekBarChanges: StateFlow<SeekBarProgress>
     ): MyGoogleMap = apply {
-        val circleState = MutableStateFlow<Circle>(
+        val circle = MutableStateFlow<Circle>(
             map.addCircle(
                 CircleOptions()
                     .center(map.cameraPosition.target)
-                    .radius((getUserSearchRadiusUseCase().value * 1000).toDouble())
+                    .radius((seekBarChanges.value.progress * 1000).toDouble())
                     .fillColor(0x100000FF)
                     .strokeWidth(0f)
             )
@@ -44,15 +67,16 @@ class MyGoogleMap(private val map: GoogleMap) {
 
         fun adjustZoomLevel(searchRadius: Int) {
             val cu = newLatLngZoom(map.cameraPosition.target, searchRadius.asZoomLevel())
-            map.animateCamera(cu)
+            map.moveCamera(cu)
         }
 
-        combine(getUserSearchRadiusUseCase(), cameraState, circleState) { searchRadius, state, circle ->
-            circle.apply {
-                center = state.position.target
-                radius = (searchRadius * 1000).toDouble()
+        seekBarChanges.combine(cameraCenter) { progress, centerState ->
+            val newRadius = (progress.progress * 1000)
+            circle.value.apply {
+                center = centerState.position
+                radius = newRadius.toDouble()
             }
-            adjustZoomLevel(searchRadius)
+            adjustZoomLevel(newRadius)
         }.observeIn(owner)
     }
 
@@ -64,7 +88,7 @@ class MyGoogleMap(private val map: GoogleMap) {
     ): MyGoogleMap =
         apply {
             map.setOnMyLocationButtonClickListener(onMyLocationButtonClickListener)
-            owner.lifecycleScope.launchWhenStarted {
+            owner.lifecycleScope.launch {
                 val location = realLocation.first().toLatLng()
                 try {
                     map.isMyLocationEnabled = true
@@ -107,14 +131,14 @@ class MyGoogleMap(private val map: GoogleMap) {
     }
 
     init {
-        map.setOnCameraMoveListener { cameraState.value = CameraState.Moving(map.cameraPosition) }
-        map.setOnCameraIdleListener { cameraState.value = CameraState.Idle(map.cameraPosition) }
+        map.setOnCameraMoveListener { _cameraState.value = CameraState.Moving(map.cameraPosition) }
+        map.setOnCameraIdleListener { _cameraState.value = CameraState.Idle(map.cameraPosition) }
     }
 }
 
 internal suspend fun SupportMapFragment.getMap(): MyGoogleMap =
     suspendCancellableCoroutine {
-        getMapAsync { map -> it.resume(MyGoogleMap(map)) }
+        getMapAsync { map -> it.resume(MyGoogleMap(this, map)) }
     }
 
 internal fun Int.asZoomLevel(): Float =

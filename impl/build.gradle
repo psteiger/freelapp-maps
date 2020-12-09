@@ -66,6 +66,8 @@ dependencies {
 
     implementation "com.github.psteiger:locationfetcher:$locationfetcher_version"
 
+    implementation "com.google.dagger:hilt-android:$hilt_version"
+
     testImplementation 'junit:junit:4.+'
     androidTestImplementation 'androidx.test.ext:junit:1.1.2'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0'
