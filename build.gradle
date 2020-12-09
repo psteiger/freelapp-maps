@@ -8,7 +8,7 @@ buildscript {
         maps_version = '3.1.0-beta'
         hilt_version = '2.30-alpha'
         locationfetcher_version = 'javax-inject-SNAPSHOT'
-        freelapp_common_version = 'ef6b703b19'
+        freelapp_common_version = 'fa68ef1818'
         freelapp_snacker_version = '36e33f8548'
     }
     repositories {
