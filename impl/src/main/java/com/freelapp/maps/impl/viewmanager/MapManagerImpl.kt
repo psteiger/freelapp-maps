@@ -14,7 +14,7 @@ import com.freelapp.common.domain.getglobaluserspositions.GetGlobalUsersPosition
 import com.freelapp.common.domain.usersearchmode.SetUserSearchModeUseCase
 import com.freelapp.common.domain.usersearchradius.GetUserSearchRadiusUseCase
 import com.freelapp.common.entity.SearchMode
-import com.freelapp.flowlifecycleobserver.observeIn
+import com.freelapp.flowlifecycleobserver.collectWhileStartedIn
 import com.freelapp.libs.locationfetcher.LocationFetcher
 import com.freelapp.libs.locationfetcher.LocationSource
 import com.freelapp.libs.locationfetcher.annotation.ApplicationLocationFetcher
@@ -69,7 +69,7 @@ class MapManagerImpl @Inject constructor(
                     .onEach { centerState ->
                         centerButton.isVisible = centerState is CameraCenterState.Idle
                     }
-                    .observeIn(owner)
+                    .collectWhileStartedIn(owner)
             }
             placesFragment.apply {
                 setPlaceFields(listOf(Place.Field.LAT_LNG))
@@ -79,7 +79,7 @@ class MapManagerImpl @Inject constructor(
                         val cameraUpdate = CameraUpdateFactory.newLatLngZoom(it.latLng, zoomLevel)
                         map.scheduleCameraAnimation(cameraUpdate)
                     }
-                    .observeIn(owner)
+                    .collectWhileStartedIn(owner)
             }
         }
     }
