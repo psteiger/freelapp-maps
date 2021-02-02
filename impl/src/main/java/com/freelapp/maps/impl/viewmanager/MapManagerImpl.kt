@@ -32,7 +32,6 @@ import com.google.android.libraries.maps.CameraUpdateFactory
 import com.google.android.libraries.places.api.model.Place
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 import kotlin.math.hypot
 
@@ -62,7 +61,7 @@ class MapManagerImpl @Inject constructor(
         placesFragment.view?.apply {
             setBackgroundColor(ContextCompat.getColor(context, android.R.color.white))
         }
-        owner.lifecycleScope.launch {
+        owner.lifecycleScope.launchWhenCreated {
             val map = createMap().also {
                 it.setButtonClickListeners()
                 it.cameraCenter

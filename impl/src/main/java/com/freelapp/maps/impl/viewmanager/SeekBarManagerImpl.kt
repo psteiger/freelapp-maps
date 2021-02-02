@@ -8,7 +8,7 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import com.freelapp.common.domain.usersearchradius.GetUserSearchRadiusUseCase
 import com.freelapp.common.domain.usersearchradius.SetUserSearchRadiusUseCase
-import com.freelapp.flowlifecycleobserver.observeIn
+import com.freelapp.flowlifecycleobserver.collectWhileStartedIn
 import com.freelapp.maps.components.SeekBarOwner
 import com.freelapp.maps.domain.SeekBarManager
 import com.freelapp.maps.impl.R
@@ -64,7 +64,7 @@ class SeekBarManagerImpl @Inject constructor(
                     setUserSearchRadiusUseCase(progress.progress.rounded())
                 }
             }
-            .observeIn(owner)
+            .collectWhileStartedIn(owner)
 
     private fun SeekBarOwner.hideShowHint(show: Boolean) {
         listOf(getSeekBarHint(), getSeekBarHintContainer())

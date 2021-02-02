@@ -5,7 +5,7 @@ import android.util.Log
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import com.freelapp.common.domain.getglobaluserspositions.GetGlobalUsersPositionsUseCase
-import com.freelapp.flowlifecycleobserver.observeIn
+import com.freelapp.flowlifecycleobserver.collectWhileStartedIn
 import com.freelapp.libs.locationfetcher.LocationFetcher
 import com.freelapp.libs.locationfetcher.LocationSource
 import com.freelapp.maps.domain.entity.SeekBarProgress
@@ -76,7 +76,7 @@ class MyGoogleMap(
 
         cameraCenter
             .onEach { circle.value.center = it.position }
-            .observeIn(owner)
+            .collectWhileStartedIn(owner)
 
         seekBarChanges
             .onEach {
@@ -84,7 +84,7 @@ class MyGoogleMap(
                 circle.value.radius = (radius * 1000).toDouble()
                 adjustZoomLevel(radius)
             }
-            .observeIn(owner)
+            .collectWhileStartedIn(owner)
     }
 
     @SuppressLint("MissingPermission")
@@ -99,7 +99,7 @@ class MyGoogleMap(
                 val location = locationSource.realLocation.replayCache.last()
                     ?: return@setOnMyLocationButtonClickListener true
                 val cu = newLatLng(location.toLatLng())
-                owner.lifecycleScope.launch { scheduleCameraAnimation(cu) }
+                owner.lifecycleScope.launchWhenCreated { scheduleCameraAnimation(cu) }
                 true
             }
             locationFetcher
@@ -111,7 +111,7 @@ class MyGoogleMap(
                         uiSettings.isMyLocationButtonEnabled = permitted
                     }
                 }
-                .observeIn(owner)
+                .collectWhileStartedIn(owner)
 
             val nonNullRealLocation =
                 locationSource
@@ -120,7 +120,7 @@ class MyGoogleMap(
 
             nonNullRealLocation
                 .combine(map.locationListeners()) { loc, listener -> listener?.onLocationChanged(loc) }
-                .observeIn(owner)
+                .collectWhileStartedIn(owner)
 
             nonNullRealLocation
                 .take(1)
@@ -147,7 +147,7 @@ class MyGoogleMap(
                         provider!!.setData(it.values.toLatLng())
                     }
                 }
-                .observeIn(owner)
+                .collectWhileStartedIn(owner)
         }
 
     private suspend fun animateCamera(cu: CameraUpdate) {

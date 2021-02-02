@@ -22,5 +22,7 @@ internal fun AutocompleteSupportFragment.selectedPlaces() =
             }
         }
         setOnPlaceSelectedListener(listener)
-        awaitClose()
+        awaitClose {
+            setOnPlaceSelectedListener(null)
+        }
     }
